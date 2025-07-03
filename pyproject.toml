@@ -1,7 +1,10 @@
 [project]
 name = "fastbridge"
 version = "0.1.0"
-description = "Add your description here"
+description = "Smart contracts for FastBridge"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "titanoboa>=0.2.7",
+    "vyper==0.4.3",
+]
