@@ -5,6 +5,7 @@ description = "Smart contracts for FastBridge"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "snekmate>=0.1.2",
     "titanoboa>=0.2.7",
     "vyper==0.4.3",
 ]

@@ -58,13 +58,13 @@ def __init__(_crvusd: IERC20, _vault: address, _bridger: IBridger, _messenger: I
 
     self.bridger = _bridger
     self.messenger = _messenger
-    log SetBridger(_bridger)
-    log SetMessenger(_messenger)
+    log SetBridger(bridger=_bridger)
+    log SetMessenger(messenger=_messenger)
 
     self.min_amount = 10**18
     self.limit = 10**18
-    log SetMinAmount(10**18)
-    log SetLimit(10**18)
+    log SetMinAmount(min_amount=10**18)
+    log SetLimit(limit=10**18)
 
     ownable.__init__()
 
@@ -131,7 +131,7 @@ def set_min_amount(_min_amount: uint256):
     ownable._check_owner()
 
     self.min_amount = _min_amount
-    log SetMinAmount(_min_amount)
+    log SetMinAmount(min_amount=_min_amount)
 
 
 @external
@@ -143,7 +143,7 @@ def set_limit(_limit: uint256):
     ownable._check_owner()
 
     self.limit = _limit
-    log SetLimit(_limit)
+    log SetLimit(limit=_limit)
 
 
 @external
@@ -157,7 +157,7 @@ def set_bridger(_bridger: IBridger):
     extcall CRVUSD.approve(self.bridger.address, 0)
     extcall CRVUSD.approve(_bridger.address, max_value(uint256))
     self.bridger = _bridger
-    log SetBridger(_bridger)
+    log SetBridger(bridger=_bridger)
 
 
 @external
@@ -169,4 +169,4 @@ def set_messenger(_messenger: IMessenger):
     ownable._check_owner()
 
     self.messenger = _messenger
-    log SetMessenger(_messenger)
+    log SetMessenger(messenger=_messenger)
