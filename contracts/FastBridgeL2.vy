@@ -21,10 +21,11 @@ exports: (
 )
 
 interface IBridger:
-    def bridge(_token: IERC20, _to: address, _amount: uint256, _min_amount: uint256=0) -> uint256: nonpayable
+    def initiate_bridge(_token: IERC20, _to: address, _amount: uint256, _min_amount: uint256=0) -> uint256: nonpayable
 
 interface IMessenger:
-    def message(_to: address, _message: Bytes[96]): payable
+    def initiate_fast_bridge(_to: address, _amount: uint256): payable
+    def quote_message_fee() -> uint256: view
 
 event SetMinAmount:
     min_amount: uint256
@@ -75,7 +76,7 @@ def quote_messaging_fee() -> uint256:
     @notice Quote messaging fee in native token. This value has to be provided 
     as msg.value when calling bridge(). This is not fee in crvUSD that is paid to the vault!
     """
-    return self.messenger.quote_message_fee()
+    return staticcall self.messenger.quote_message_fee()
 
 
 @external
@@ -104,9 +105,7 @@ def bridge(_to: address, _amount: uint256, _min_amount: uint256=0) -> uint256:
     extcall self.bridger.initiate_bridge(CRVUSD, VAULT, max_value(uint256), self.min_amount)
 
     # Message for VAULT to release amount while waiting
-    extcall self.messenger.initiate_fast_bridge(
-        _to, _amount, value=msg.value,
-    )
+    extcall self.messenger.initiate_fast_bridge(_to, _amount, value=msg.value)
 
     return amount
 

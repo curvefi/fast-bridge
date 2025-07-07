@@ -12,6 +12,7 @@ exports: (
 
 # LayerZero module
 from ..modules.oapp_vyper.src import OApp
+from ..modules.oapp_vyper.src import OptionsBuilder
 
 initializes: OApp[ownable := ownable]
 exports: (
@@ -30,7 +31,7 @@ fast_bridge_l2: public(address)
 gas_limit: public(uint128)
 
 @deploy
-def __init__(_endpoint: address, _vault_eid: uint32, _gas_limit):
+def __init__(_endpoint: address, _vault_eid: uint32, _gas_limit: uint128):
     """
     @notice Initialize messenger with LZ endpoint and default gas settings
     @param _endpoint LayerZero endpoint address
@@ -43,7 +44,7 @@ def __init__(_endpoint: address, _vault_eid: uint32, _gas_limit):
 
     OApp.__init__(_endpoint, tx.origin)
 
-    self.VAULT_EID = _vault_eid
+    VAULT_EID = _vault_eid
     self.gas_limit = _gas_limit
 
 
@@ -54,17 +55,18 @@ def quote_message_fee() -> uint256:
     @notice Quote message fee in native token
     """
     # step 1: mock message 
-    encoded_message: Bytes[OApp.MAX_MESSAGE_SIZE] = abi_encode(self, 10**18)
+    encoded_message: Bytes[OApp.MAX_MESSAGE_SIZE] = abi_encode(self, empty(uint256))
 
     # step 2: mock options
     options: Bytes[OptionsBuilder.MAX_OPTIONS_TOTAL_SIZE] = OptionsBuilder.newOptions()
     options = OptionsBuilder.addExecutorLzReceiveOption(options, self.gas_limit, 0)
 
     # step 3: quote fee
-    return OApp._quote(self.VAULT_EID, encoded_message, options, False)
+    return OApp._quote(VAULT_EID, encoded_message, options, False).nativeFee
 
 
 @external
+@payable
 def initiate_fast_bridge(_to: address, _amount: uint256):
     """
     @notice Initiate fast bridge by sending (to, amount) to peer on main chain
@@ -83,4 +85,4 @@ def initiate_fast_bridge(_to: address, _amount: uint256):
 
     # step 3: send message
     fees: OApp.MessagingFee = OApp.MessagingFee(nativeFee=msg.value, lzTokenFee=0)
-    OApp._lzSend(self.MAIN_EID, encoded_message, options, fees, msg.sender)
+    OApp._lzSend(VAULT_EID, encoded_message, options, fees, msg.sender)

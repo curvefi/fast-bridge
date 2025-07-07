@@ -24,10 +24,13 @@ exports: (
     OApp.nextNonce,
 )
 
-vault: public(address)
+interface IVault:
+    def mint(_receiver: address, _amount: uint256) -> uint256: nonpayable
+
+vault: public(IVault)
 
 @deploy
-def __init__(_endpoint: address, _vault: address):
+def __init__(_endpoint: address):
     """
     @notice Initialize messenger with LZ endpoint and default gas settings
     @param _endpoint LayerZero endpoint address
@@ -36,7 +39,6 @@ def __init__(_endpoint: address, _vault: address):
     ownable._transfer_ownership(tx.origin)
 
     OApp.__init__(_endpoint, tx.origin)
-    self.vault = _vault
 
 
 @external
@@ -46,7 +48,7 @@ def set_vault(_vault: address):
     @param _vault new vault address
     """
     ownable._check_owner()
-    self.vault = _vault
+    self.vault = IVault(_vault)
 
 
 @payable
@@ -60,12 +62,15 @@ def lzReceive(
 ):
     """
     @notice Receive message from main chain
-    @param _to Address to mint to
-    @param _amount Amount to mint
+    @param _origin Origin information containing srcEid, sender, and nonce
+    @param _guid Global unique identifier for the message
+    @param _message The encoded message payload containing to and amount
+    @param _executor Address of the executor for the message
+    @param _extraData Additional data passed by the executor
     """
     # Verify message source
     OApp._lzReceive(_origin, _guid, _message, _executor, _extraData)
-    
+
     # Decode message
     to: address = empty(address)
     amount: uint256 = empty(uint256)
