@@ -2,5 +2,5 @@
 
 
 @external
-def bridge():
+def initiate_bridge():
     pass
