@@ -25,24 +25,25 @@ exports: (
     OApp.nextNonce,
 )
 
-MAIN_EID: public(immutable(uint32))
+VAULT_EID: public(immutable(uint32))
 fast_bridge_l2: public(address)
 gas_limit: public(uint128)
 
 @deploy
-def __init__(_endpoint: address, _main_eid: uint32, _gas_limit):
+def __init__(_endpoint: address, _vault_eid: uint32, _gas_limit):
     """
     @notice Initialize messenger with LZ endpoint and default gas settings
     @param _endpoint LayerZero endpoint address
-    @param _main_eid Main chain EID
+    @param _vault_eid Vault chain EID
     @param _gas_limit Gas limit for lz message
+    @dev after deployment, must call setPeer()
     """
     ownable.__init__()
     ownable._transfer_ownership(tx.origin)
 
     OApp.__init__(_endpoint, tx.origin)
 
-    self.MAIN_EID = _main_eid
+    self.VAULT_EID = _vault_eid
     self.gas_limit = _gas_limit
 
 
@@ -60,7 +61,7 @@ def quote_message_fee() -> uint256:
     options = OptionsBuilder.addExecutorLzReceiveOption(options, self.gas_limit, 0)
 
     # step 3: quote fee
-    return OApp._quote(self.MAIN_EID, encoded_message, options, False)
+    return OApp._quote(self.VAULT_EID, encoded_message, options, False)
 
 
 @external
