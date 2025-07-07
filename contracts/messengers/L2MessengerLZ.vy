@@ -25,13 +25,61 @@ exports: (
     OApp.nextNonce,
 )
 
+MAIN_EID: public(immutable(uint32))
+fast_bridge_l2: public(address)
+gas_limit: public(uint128)
+
 @deploy
-def __init__(_endpoint: address):
+def __init__(_endpoint: address, _main_eid: uint32, _gas_limit):
     """
     @notice Initialize messenger with LZ endpoint and default gas settings
     @param _endpoint LayerZero endpoint address
+    @param _main_eid Main chain EID
+    @param _gas_limit Gas limit for lz message
     """
     ownable.__init__()
     ownable._transfer_ownership(tx.origin)
 
     OApp.__init__(_endpoint, tx.origin)
+
+    self.MAIN_EID = _main_eid
+    self.gas_limit = _gas_limit
+
+
+@external
+@view
+def quote_message_fee() -> uint256:
+    """
+    @notice Quote message fee in native token
+    """
+    # step 1: mock message 
+    encoded_message: Bytes[OApp.MAX_MESSAGE_SIZE] = abi_encode(self, 10**18)
+
+    # step 2: mock options
+    options: Bytes[OptionsBuilder.MAX_OPTIONS_TOTAL_SIZE] = OptionsBuilder.newOptions()
+    options = OptionsBuilder.addExecutorLzReceiveOption(options, self.gas_limit, 0)
+
+    # step 3: quote fee
+    return OApp._quote(self.MAIN_EID, encoded_message, options, False)
+
+
+@external
+def initiate_fast_bridge(_to: address, _amount: uint256):
+    """
+    @notice Initiate fast bridge by sending (to, amount) to peer on main chain
+    Only callable by FastBridgeL2
+    @param _to Address to mint to
+    @param _amount Amount to mint
+    """
+    assert msg.sender == self.fast_bridge_l2, "Only FastBridgeL2!"
+    
+     # step 1: convert message to bytes
+    encoded_message: Bytes[OApp.MAX_MESSAGE_SIZE] = abi_encode(_to, _amount)
+
+    # step 2: create options using OptionsBuilder module
+    options: Bytes[OptionsBuilder.MAX_OPTIONS_TOTAL_SIZE] = OptionsBuilder.newOptions()
+    options = OptionsBuilder.addExecutorLzReceiveOption(options, self.gas_limit, 0)
+
+    # step 3: send message
+    fees: OApp.MessagingFee = OApp.MessagingFee(nativeFee=msg.value, lzTokenFee=0)
+    OApp._lzSend(self.MAIN_EID, encoded_message, options, fees, msg.sender)

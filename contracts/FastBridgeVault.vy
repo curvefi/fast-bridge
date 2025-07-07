@@ -106,7 +106,7 @@ def schedule_rug() -> bool:
 
 @external
 @nonreentrant
-def mint(_receiver: address=msg.sender, _amount: uint256=0) -> uint256:
+def mint(_receiver: address, _amount: uint256) -> uint256:
     """
     @notice Receive bridged crvUSD
     @param _receiver Receiver of crvUSD

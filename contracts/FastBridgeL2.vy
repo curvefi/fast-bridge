@@ -70,6 +70,15 @@ def __init__(_crvusd: IERC20, _vault: address, _bridger: IBridger, _messenger: I
 
 
 @external
+def quote_messaging_fee() -> uint256:
+    """
+    @notice Quote messaging fee in native token. This value has to be provided 
+    as msg.value when calling bridge(). This is not fee in crvUSD that is paid to the vault!
+    """
+    return self.messenger.quote_message_fee()
+
+
+@external
 @payable
 def bridge(_to: address, _amount: uint256, _min_amount: uint256=0) -> uint256:
     """
@@ -91,13 +100,12 @@ def bridge(_to: address, _amount: uint256, _min_amount: uint256=0) -> uint256:
     assert extcall CRVUSD.transferFrom(msg.sender, self, amount)
     self.bridged[block.timestamp // INTERVAL] += amount
 
-    # Initiate bridge transaction
-    extcall self.bridger.bridge(CRVUSD, VAULT, max_value(uint256), self.min_amount)
+    # Initiate bridge transaction using native bridge
+    extcall self.bridger.initiate_bridge(CRVUSD, VAULT, max_value(uint256), self.min_amount)
+
     # Message for VAULT to release amount while waiting
-    extcall self.messenger.message(
-        VAULT,
-        abi_encode(_to, amount, method_id=method_id("mint(address,uint256)")),
-        value=msg.value,
+    extcall self.messenger.initiate_fast_bridge(
+        _to, _amount, value=msg.value,
     )
 
     return amount
