@@ -1,4 +1,5 @@
 # pragma version 0.4.3
+
 """
 @title FastBridgeVault
 @notice Vault with crvUSD for FastBridge

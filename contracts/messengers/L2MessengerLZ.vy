@@ -49,6 +49,16 @@ def __init__(_endpoint: address, _vault_eid: uint32, _gas_limit: uint128):
 
 
 @external
+def set_fast_bridge_l2(_fast_bridge_l2: address):
+    """
+    @notice Set fast bridge l2 address
+    @param _fast_bridge_l2 FastBridgeL2 address
+    """
+    ownable._check_owner()
+    self.fast_bridge_l2 = _fast_bridge_l2
+
+
+@external
 @view
 def quote_message_fee() -> uint256:
     """
@@ -67,7 +77,7 @@ def quote_message_fee() -> uint256:
 
 @external
 @payable
-def initiate_fast_bridge(_to: address, _amount: uint256):
+def initiate_fast_bridge(_to: address, _amount: uint256, _lz_fee_refund: address):
     """
     @notice Initiate fast bridge by sending (to, amount) to peer on main chain
     Only callable by FastBridgeL2
@@ -85,4 +95,4 @@ def initiate_fast_bridge(_to: address, _amount: uint256):
 
     # step 3: send message
     fees: OApp.MessagingFee = OApp.MessagingFee(nativeFee=msg.value, lzTokenFee=0)
-    OApp._lzSend(VAULT_EID, encoded_message, options, fees, msg.sender)
+    OApp._lzSend(VAULT_EID, encoded_message, options, fees, _lz_fee_refund)

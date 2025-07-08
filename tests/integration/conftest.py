@@ -2,6 +2,8 @@ import boa
 import pytest
 import os
 import json
+from eth_utils import to_bytes
+
 
 BOA_CACHE = False
 
@@ -9,11 +11,14 @@ LZ_ENDPOINT = "0x1a44076050125825900e736c501f859c50fE728c"  # mainnet
 LZ_EID = 30101  # Ethereum mainnet
 EMPTY_ADDRESS = boa.eval("empty(address)")
 
-
-@pytest.fixture(scope="session")
-def chains():
-    with open("chains.json", "r") as file:
-        return json.load(file)
+def to_bytes32(value):
+    """Convert a string or address to bytes32 format."""
+    if isinstance(value, str) and value.startswith("0x"):
+        # Convert hex string to bytes and pad to 32 bytes
+        return to_bytes(hexstr=value).rjust(32, b"\x00")
+    else:
+        # For non-hex strings or other types
+        return to_bytes(text=str(value)).rjust(32, b"\x00")
 
 
 @pytest.fixture(scope="session")
@@ -22,7 +27,7 @@ def drpc_api_key():
 
 
 @pytest.fixture(scope="function")
-def rpc_url(chains, chain_name, drpc_api_key):
+def rpc_url(drpc_api_key):
     """Fixture to generate the correct RPC URL for each chain."""
     return 'https://lb.drpc.org/ogrpc?network=ethereum&dkey=' + drpc_api_key
 
@@ -63,3 +68,4 @@ def fast_bridge_vault(dev_deployer, curve_dao, emergency_dao, vault_messenger):
 def fast_bridge_l2(dev_deployer, crvusd, fast_bridge_vault, bridger, l2_messenger):
     with boa.env.prank(dev_deployer):
         return boa.load("contracts/FastBridgeL2.vy", crvusd, fast_bridge_vault, bridger, l2_messenger)
+    

@@ -54,6 +54,10 @@ messenger: public(IMessenger)
 
 @deploy
 def __init__(_crvusd: IERC20, _vault: address, _bridger: IBridger, _messenger: IMessenger):
+
+    ownable.__init__()
+    ownable._transfer_ownership(tx.origin) # for case of proxy deployment
+
     CRVUSD = _crvusd
     VAULT = _vault
 
@@ -64,10 +68,9 @@ def __init__(_crvusd: IERC20, _vault: address, _bridger: IBridger, _messenger: I
 
     self.min_amount = 10**18
     self.limit = 10**18
-    log SetMinAmount(min_amount=10**18)
-    log SetLimit(limit=10**18)
+    log SetMinAmount(min_amount=self.min_amount)
+    log SetLimit(limit=self.limit)
 
-    ownable.__init__()
 
 
 @external
@@ -105,7 +108,7 @@ def bridge(_to: address, _amount: uint256, _min_amount: uint256=0) -> uint256:
     extcall self.bridger.initiate_bridge(CRVUSD, VAULT, max_value(uint256), self.min_amount)
 
     # Message for VAULT to release amount while waiting
-    extcall self.messenger.initiate_fast_bridge(_to, _amount, value=msg.value)
+    extcall self.messenger.initiate_fast_bridge(_to, _amount, msg.sender, value=msg.value)
 
     return amount
 
