@@ -24,7 +24,7 @@ interface IBridger:
     def initiate_bridge(_token: IERC20, _to: address, _amount: uint256, _min_amount: uint256=0) -> uint256: nonpayable
 
 interface IMessenger:
-    def initiate_fast_bridge(_to: address, _amount: uint256): payable
+    def initiate_fast_bridge(_to: address, _amount: uint256, _lz_fee_refund: address): payable
     def quote_message_fee() -> uint256: view
 
 event SetMinAmount:

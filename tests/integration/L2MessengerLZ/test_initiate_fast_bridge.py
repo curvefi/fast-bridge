@@ -39,3 +39,10 @@ def test_default_behavior(forked_env, l2_messenger, dev_deployer, fast_bridge_l2
     with boa.env.prank(fast_bridge_l2.address):
         l2_messenger.initiate_fast_bridge(test_peer, to_mint, dev_deployer, value=10**18)
 
+    # test not bridge
+    sender = boa.env.generate_address()
+    boa.env.set_balance(sender, 10**20)
+
+    with boa.env.prank(sender):
+        with boa.reverts('Only FastBridgeL2!'):
+            l2_messenger.initiate_fast_bridge(test_peer, to_mint, dev_deployer, value=10**18)
