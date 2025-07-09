@@ -4,13 +4,14 @@ import os
 import json
 from eth_utils import to_bytes
 
+boa.set_etherscan(api_key=os.getenv("ETHERSCAN_API_KEY"))
 
-BOA_CACHE = False
+
+BOA_CACHE = True
 
 LZ_ENDPOINT = "0x1a44076050125825900e736c501f859c50fE728c"  # mainnet
 LZ_EID = 30101  # Ethereum mainnet
 EMPTY_ADDRESS = boa.eval("empty(address)")
-
 def to_bytes32(value):
     """Convert a string or address to bytes32 format."""
     if isinstance(value, str) and value.startswith("0x"):
@@ -69,3 +70,7 @@ def fast_bridge_l2(dev_deployer, crvusd, fast_bridge_vault, bridger, l2_messenge
     with boa.env.prank(dev_deployer):
         return boa.load("contracts/FastBridgeL2.vy", crvusd, fast_bridge_vault, bridger, l2_messenger)
     
+
+@pytest.fixture()
+def crvusd():
+    return boa.from_etherscan("0xf939E0A03FB07F59A73314E73794Be0E57ac1b4E")
