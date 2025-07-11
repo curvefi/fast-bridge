@@ -50,7 +50,11 @@ def forked_env(rpc_url):
 @pytest.fixture()
 def l2_messenger(dev_deployer):
     with boa.env.prank(dev_deployer):
-        return boa.load("contracts/messengers/L2MessengerLZ.vy", LZ_ENDPOINT, LZ_EID, 100_000)
+        messenger = boa.load("contracts/messengers/L2MessengerLZ.vy", LZ_ENDPOINT, LZ_EID, 100_000)
+        # Set a peer to make quote_message_fee work
+        test_peer = to_bytes32("0x" + "42" * 20)  # Dummy peer for testing
+        messenger.setPeer(LZ_EID, test_peer)
+        return messenger
 
 
 @pytest.fixture()
@@ -68,9 +72,36 @@ def fast_bridge_vault(dev_deployer, curve_dao, emergency_dao, vault_messenger):
 @pytest.fixture()
 def fast_bridge_l2(dev_deployer, crvusd, fast_bridge_vault, bridger, l2_messenger):
     with boa.env.prank(dev_deployer):
-        return boa.load("contracts/FastBridgeL2.vy", crvusd, fast_bridge_vault, bridger, l2_messenger)
+        fast_bridge_l2 = boa.load("contracts/FastBridgeL2.vy", crvusd, fast_bridge_vault, bridger, l2_messenger)
+        l2_messenger.set_fast_bridge_l2(fast_bridge_l2.address)
+        return fast_bridge_l2
     
 
 @pytest.fixture()
 def crvusd():
     return boa.from_etherscan("0xf939E0A03FB07F59A73314E73794Be0E57ac1b4E")
+
+
+@pytest.fixture()
+def dev_deployer():
+    """Developer deployer account."""
+    return boa.env.generate_address()
+
+
+@pytest.fixture()
+def curve_dao():
+    """Curve DAO address for admin functions."""
+    return boa.env.generate_address()
+
+
+@pytest.fixture()
+def emergency_dao():
+    """Emergency DAO address for kill functions."""
+    return boa.env.generate_address()
+
+
+@pytest.fixture()
+def bridger(dev_deployer):
+    """Mock bridger contract."""
+    with boa.env.prank(dev_deployer):
+        return boa.load("tests/mocks/MockBridger.vy")

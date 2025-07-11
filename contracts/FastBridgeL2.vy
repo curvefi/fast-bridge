@@ -21,7 +21,7 @@ exports: (
 )
 
 interface IBridger:
-    def initiate_bridge(_token: IERC20, _to: address, _amount: uint256, _min_amount: uint256=0) -> uint256: nonpayable
+    def initiate_bridge(_asset: IERC20, _to: address, _amount: uint256, _min_amount: uint256) -> uint256: nonpayable
 
 interface IMessenger:
     def initiate_fast_bridge(_to: address, _amount: uint256, _lz_fee_refund: address): payable
@@ -62,6 +62,7 @@ def __init__(_crvusd: IERC20, _vault: address, _bridger: IBridger, _messenger: I
     VAULT = _vault
 
     self.bridger = _bridger
+    extcall CRVUSD.approve(_bridger.address, max_value(uint256))
     self.messenger = _messenger
     log SetBridger(bridger=_bridger)
     log SetMessenger(messenger=_messenger)
@@ -105,7 +106,7 @@ def bridge(_to: address, _amount: uint256, _min_amount: uint256=0) -> uint256:
     self.bridged[block.timestamp // INTERVAL] += amount
 
     # Initiate bridge transaction using native bridge
-    extcall self.bridger.initiate_bridge(CRVUSD, VAULT, max_value(uint256), self.min_amount)
+    extcall self.bridger.initiate_bridge(CRVUSD, VAULT, amount, self.min_amount)
 
     # Message for VAULT to release amount while waiting
     extcall self.messenger.initiate_fast_bridge(_to, _amount, msg.sender, value=msg.value)
@@ -121,7 +122,7 @@ def allowed_to_bridge(_ts: uint256=block.timestamp) -> (uint256, uint256):
     @param _ts Timestamp at which to check (current by default)
     @return (minimum, maximum) amounts allowed to bridge
     """
-    available: uint256 = self.limit - self.bridged[block.timestamp // INTERVAL]
+    available: uint256 = self.limit - self.bridged[_ts // INTERVAL]
 
     balance: uint256 = staticcall CRVUSD.balanceOf(self)  # Someone threw money by mistake
     min_amount: uint256 = self.min_amount

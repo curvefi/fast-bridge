@@ -18,6 +18,11 @@ def test_default_behavior(forked_env, l2_messenger, dev_deployer):
     assert fees > 0
 
 
-def test_no_peer(forked_env, l2_messenger):
+def test_no_peer(forked_env, l2_messenger, dev_deployer):
+    vault_eid = l2_messenger.VAULT_EID()
+    with boa.env.prank(dev_deployer):
+        peer_bytes = to_bytes32(boa.eval("empty(address)"))
+        l2_messenger.setPeer(vault_eid, peer_bytes)
+
     with boa.reverts('OApp: no peer'):
         l2_messenger.quote_message_fee()
