@@ -44,4 +44,5 @@ jobs:
         # Add the DRPC_API_KEY env var here
         env:
           DRPC_API_KEY: ${{ secrets.DRPC_API_KEY }}
+          ETHERSCAN_API_KEY: ${{ secrets.ETHERSCAN_API_KEY }}
         run: uv run pytest ${{ matrix.folder }} -n auto
