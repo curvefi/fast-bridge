@@ -37,11 +37,11 @@ def test_allowed_to_bridge_after_bridging(forked_env, fast_bridge_l2, crvusd, de
         crvusd.approve(fast_bridge_l2.address, 500 * 10 ** 18)
     
     receiver = boa.env.generate_address()
-    messaging_fee = fast_bridge_l2.quote_messaging_fee()
+    cost = fast_bridge_l2.cost()
     
     # Bridge 300 crvUSD
     with boa.env.prank(dev_deployer):
-        fast_bridge_l2.bridge(receiver, 300 * 10 ** 18, value=messaging_fee)
+        fast_bridge_l2.bridge(receiver, 300 * 10 ** 18, value=cost)
     
     # Check allowed range
     min_allowed, max_allowed = fast_bridge_l2.allowed_to_bridge()
@@ -66,11 +66,11 @@ def test_allowed_to_bridge_limit_exhausted(forked_env, fast_bridge_l2, crvusd, d
         crvusd.approve(fast_bridge_l2.address, 200 * 10 ** 18)
     
     receiver = boa.env.generate_address()
-    messaging_fee = fast_bridge_l2.quote_messaging_fee()
+    cost = fast_bridge_l2.cost()
     
     # Bridge the full limit
     with boa.env.prank(dev_deployer):
-        fast_bridge_l2.bridge(receiver, 100 * 10 ** 18, value=messaging_fee)
+        fast_bridge_l2.bridge(receiver, 100 * 10 ** 18, value=cost)
     
     # Check allowed range
     min_allowed, max_allowed = fast_bridge_l2.allowed_to_bridge()
@@ -124,11 +124,11 @@ def test_allowed_to_bridge_insufficient_for_min(forked_env, fast_bridge_l2, crvu
         crvusd.approve(fast_bridge_l2.address, 850 * 10 ** 18)
     
     receiver = boa.env.generate_address()
-    messaging_fee = fast_bridge_l2.quote_messaging_fee()
+    cost = fast_bridge_l2.cost()
     
     # Bridge 850 crvUSD, leaving only 150 available (less than min 200)
     with boa.env.prank(dev_deployer):
-        fast_bridge_l2.bridge(receiver, 850 * 10 ** 18, value=messaging_fee)
+        fast_bridge_l2.bridge(receiver, 850 * 10 ** 18, value=cost)
     
     # Check allowed range
     min_allowed, max_allowed = fast_bridge_l2.allowed_to_bridge()
@@ -163,11 +163,11 @@ def test_allowed_to_bridge_with_timestamp(forked_env, fast_bridge_l2, crvusd, de
         crvusd.approve(fast_bridge_l2.address, 200 * 10 ** 18)
     
     receiver = boa.env.generate_address()
-    messaging_fee = fast_bridge_l2.quote_messaging_fee()
+    cost = fast_bridge_l2.cost()
     
     # Bridge the full limit
     with boa.env.prank(dev_deployer):
-        fast_bridge_l2.bridge(receiver, 100 * 10 ** 18, value=messaging_fee)
+        fast_bridge_l2.bridge(receiver, 100 * 10 ** 18, value=cost)
     
     min_current, max_current = fast_bridge_l2.allowed_to_bridge(current_ts)
     assert max_current < max_default

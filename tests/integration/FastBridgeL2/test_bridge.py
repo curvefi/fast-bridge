@@ -26,13 +26,12 @@ def test_bridge_basic(forked_env, fast_bridge_l2, crvusd, l2_messenger, dev_depl
         crvusd.approve(fast_bridge_l2.address, bridge_amount)
     
     # Get messaging fee
-    messaging_fee = fast_bridge_l2.quote_messaging_fee()
-    
+    cost = fast_bridge_l2.cost()
     initial_user_balance = crvusd.balanceOf(dev_deployer)
     
     # Execute bridge
     with boa.env.prank(dev_deployer):
-        bridged_amount = fast_bridge_l2.bridge(receiver, bridge_amount, value=messaging_fee)
+        bridged_amount = fast_bridge_l2.bridge(receiver, bridge_amount, value=cost)
     
     # Verify the bridged amount
     assert bridged_amount == bridge_amount
@@ -63,8 +62,7 @@ def test_bridge_max_balance(forked_env, fast_bridge_l2, crvusd, dev_deployer):
         crvusd.approve(fast_bridge_l2.address, test_amount * 2)
     
     receiver = boa.env.generate_address()
-    messaging_fee = fast_bridge_l2.quote_messaging_fee()
-    
+    cost = fast_bridge_l2.cost()
     user_balance_before = crvusd.balanceOf(dev_deployer)
     
     # Bridge with max_value to use entire balance
@@ -80,7 +78,7 @@ def test_bridge_max_balance(forked_env, fast_bridge_l2, crvusd, dev_deployer):
         bridged_amount = fast_bridge_l2.bridge(
             receiver, 
             boa.eval("max_value(uint256)"), 
-            value=messaging_fee
+            value=cost
         )
     
     # Should bridge the minimum of: balance, allowance, and available limit
@@ -104,14 +102,13 @@ def test_bridge_with_daily_limit(forked_env, fast_bridge_l2, crvusd, dev_deploye
         crvusd.approve(fast_bridge_l2.address, 1000 * 10 ** 18)
     
     receiver = boa.env.generate_address()
-    messaging_fee = fast_bridge_l2.quote_messaging_fee()
-    
+    cost = fast_bridge_l2.cost()
     # Try to bridge more than the limit
     with boa.env.prank(dev_deployer):
         bridged_amount = fast_bridge_l2.bridge(
             receiver,
             200 * 10 ** 18,  # More than limit
-            value=messaging_fee
+            value=cost
         )
     
     # Should only bridge up to the limit
@@ -122,7 +119,7 @@ def test_bridge_with_daily_limit(forked_env, fast_bridge_l2, crvusd, dev_deploye
         bridged_amount2 = fast_bridge_l2.bridge(
             receiver,
             50 * 10 ** 18,
-            value=messaging_fee
+            value=cost
         )
     
     # Should bridge 0 as limit is exhausted
@@ -144,11 +141,10 @@ def test_bridge_min_amount_requirement(forked_env, fast_bridge_l2, crvusd, dev_d
         crvusd.approve(fast_bridge_l2.address, 1000 * 10 ** 18)
     
     receiver = boa.env.generate_address()
-    messaging_fee = fast_bridge_l2.quote_messaging_fee()
-    
+    cost = fast_bridge_l2.cost()
     # First bridge to use up some limit
     with boa.env.prank(dev_deployer):
-        fast_bridge_l2.bridge(receiver, 60 * 10 ** 18, value=messaging_fee)
+        fast_bridge_l2.bridge(receiver, 60 * 10 ** 18, value=cost)
     
     # Now only 90 crvUSD available (less than min_amount of 100)
     # Try to bridge with a _min_amount requirement
@@ -158,7 +154,7 @@ def test_bridge_min_amount_requirement(forked_env, fast_bridge_l2, crvusd, dev_d
                 receiver,
                 150 * 10 ** 18,
                 100 * 10 ** 18,  # min_amount parameter
-                value=messaging_fee
+                value=cost
             )
 
 
@@ -173,11 +169,11 @@ def test_bridge_events(forked_env, fast_bridge_l2, crvusd, dev_deployer):
         crvusd.approve(fast_bridge_l2.address, bridge_amount)
     
     receiver = boa.env.generate_address()
-    messaging_fee = fast_bridge_l2.quote_messaging_fee()
+    cost = fast_bridge_l2.cost()
     
     # Execute bridge
     with boa.env.prank(dev_deployer):
-        fast_bridge_l2.bridge(receiver, bridge_amount, value=messaging_fee)
+        fast_bridge_l2.bridge(receiver, bridge_amount, value=cost)
     
     # Get logs after function call
     events = fast_bridge_l2.get_logs()
@@ -199,13 +195,34 @@ def test_bridge_insufficient_messaging_fee(forked_env, fast_bridge_l2, crvusd, d
         crvusd.approve(fast_bridge_l2.address, bridge_amount)
     
     receiver = boa.env.generate_address()
-    messaging_fee = fast_bridge_l2.quote_messaging_fee()
-    
+    cost = fast_bridge_l2.cost()
     # Try to bridge with less than required messaging fee
     with boa.env.prank(dev_deployer):
         with boa.reverts():
             fast_bridge_l2.bridge(
                 receiver,
                 bridge_amount,
-                value=messaging_fee // 2  # Half the required fee
+                value=cost // 2  # Half the required fee
             )
+
+
+def test_bridge_overpaid_msg_value(forked_env, fast_bridge_l2, crvusd, dev_deployer):
+    """Test bridge fails with overpaid msg.value."""
+    # Fund and setup
+    bridge_amount = 100 * 10 ** 18
+    boa.deal(crvusd, dev_deployer, bridge_amount)
+    boa.env.set_balance(dev_deployer, 10 * 10 ** 18)
+    
+    with boa.env.prank(dev_deployer):
+        crvusd.approve(fast_bridge_l2.address, bridge_amount)
+    
+    receiver = boa.env.generate_address()
+    cost = fast_bridge_l2.cost()
+    # Try to bridge with less than required messaging fee
+    with boa.env.prank(dev_deployer):
+        fast_bridge_l2.bridge(
+            receiver,
+            bridge_amount,
+            value=2 * cost
+        )
+    assert boa.env.get_balance(dev_deployer) == 10 * 10 ** 18 - cost

@@ -35,6 +35,6 @@ def test_setup_for_messaging(forked_env, fast_bridge_l2, l2_messenger, dev_deplo
         l2_messenger.setPeer(test_eid, test_peer)
     
     # Now quote_messaging_fee should work
-    fee = fast_bridge_l2.quote_messaging_fee()
+    fee = fast_bridge_l2.cost()
     assert isinstance(fee, int)
     assert fee >= 0
