@@ -434,6 +434,7 @@ name = "fastbridge"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "pytest" },
     { name = "pytest-xdist" },
     { name = "snekmate" },
     { name = "titanoboa" },
@@ -442,6 +443,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "pytest", specifier = ">=8.3.4" },
     { name = "pytest-xdist", specifier = ">=3.8.0" },
     { name = "snekmate", specifier = ">=0.1.2" },
     { name = "titanoboa", specifier = ">=0.2.7" },

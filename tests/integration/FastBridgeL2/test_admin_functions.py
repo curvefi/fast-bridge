@@ -9,10 +9,10 @@ def test_set_min_amount(forked_env, fast_bridge_l2, dev_deployer):
     """Test set_min_amount functionality."""
     # Check initial min_amount
     initial_min = fast_bridge_l2.min_amount()
-    assert initial_min == to_wei(1, "ether")  # Default from constructor
+    assert initial_min == 1 * 10 ** 18  # Default from constructor
     
     # Set new min_amount as owner
-    new_min = to_wei(50, "ether")
+    new_min = 50 * 10 ** 18
     with boa.env.prank(dev_deployer):
         fast_bridge_l2.set_min_amount(new_min)
     
@@ -26,17 +26,17 @@ def test_set_min_amount_unauthorized(forked_env, fast_bridge_l2):
     
     with boa.env.prank(unauthorized):
         with boa.reverts("ownable: caller is not the owner"):
-            fast_bridge_l2.set_min_amount(to_wei(100, "ether"))
+            fast_bridge_l2.set_min_amount(100 * 10 ** 18)
 
 
 def test_set_limit(forked_env, fast_bridge_l2, dev_deployer):
     """Test set_limit functionality."""
     # Check initial limit
     initial_limit = fast_bridge_l2.limit()
-    assert initial_limit == to_wei(1, "ether")  # Default from constructor
+    assert initial_limit == 1 * 10 ** 18  # Default from constructor
     
     # Set new limit as owner
-    new_limit = to_wei(10000, "ether")
+    new_limit = 10000 * 10 ** 18
     with boa.env.prank(dev_deployer):
         fast_bridge_l2.set_limit(new_limit)
 
@@ -57,7 +57,7 @@ def test_set_limit_unauthorized(forked_env, fast_bridge_l2):
     
     with boa.env.prank(unauthorized):
         with boa.reverts("ownable: caller is not the owner"):
-            fast_bridge_l2.set_limit(to_wei(5000, "ether"))
+            fast_bridge_l2.set_limit(5000 * 10 ** 18)
 
 
 def test_set_bridger(forked_env, fast_bridge_l2, crvusd, dev_deployer):
@@ -147,10 +147,10 @@ def test_ownership_transfer(forked_env, fast_bridge_l2, dev_deployer):
     # Verify old owner can't call admin functions
     with boa.env.prank(dev_deployer):
         with boa.reverts("ownable: caller is not the owner"):
-            fast_bridge_l2.set_limit(to_wei(1000, "ether"))
+            fast_bridge_l2.set_limit(1000 * 10 ** 18)
     
     # Verify new owner can call admin functions
     with boa.env.prank(new_owner):
-        fast_bridge_l2.set_limit(to_wei(2000, "ether"))
+        fast_bridge_l2.set_limit(2000 * 10 ** 18)
     
-    assert fast_bridge_l2.limit() == to_wei(2000, "ether")
+    assert fast_bridge_l2.limit() == 2000 * 10 ** 18
