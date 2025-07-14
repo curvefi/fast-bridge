@@ -21,7 +21,8 @@ exports: (
 )
 
 interface IBridger:
-    def initiate_bridge(_asset: IERC20, _to: address, _amount: uint256, _min_amount: uint256) -> uint256: nonpayable
+    def cost() -> uint256: view
+    def bridge(_token: IERC20, _to: address, _amount: uint256, _min_amount: uint256=0) -> uint256: payable
 
 interface IMessenger:
     def initiate_fast_bridge(_to: address, _amount: uint256, _lz_fee_refund: address): payable
@@ -73,14 +74,31 @@ def __init__(_crvusd: IERC20, _vault: address, _bridger: IBridger, _messenger: I
     log SetLimit(limit=self.limit)
 
 
+@internal
+@view
+def messaging_cost() -> uint256:
+    """
+    Messaging cost to pass message to VAULT (Fast Bridge)
+    """
+    return staticcall self.messenger.quote_message_fee()
+
+
+@internal
+@view
+def bridger_cost() -> uint256:
+    """
+    Bridger cost to bridge crvUSD to VAULT (Native Bridge)
+    """
+    return staticcall self.bridger.cost()
+
 
 @external
-def quote_messaging_fee() -> uint256:
+def cost() -> uint256:
     """
     @notice Quote messaging fee in native token. This value has to be provided 
     as msg.value when calling bridge(). This is not fee in crvUSD that is paid to the vault!
     """
-    return staticcall self.messenger.quote_message_fee()
+    return self.messaging_cost() + self.bridger_cost()
 
 
 @external
@@ -105,11 +123,19 @@ def bridge(_to: address, _amount: uint256, _min_amount: uint256=0) -> uint256:
     assert extcall CRVUSD.transferFrom(msg.sender, self, amount)
     self.bridged[block.timestamp // INTERVAL] += amount
 
+    bridger_cost: uint256 = self.bridger_cost()
+    messaging_cost: uint256 = self.messaging_cost()
+    assert msg.value >= bridger_cost + messaging_cost, "Insufficient msg.value"
+    
     # Initiate bridge transaction using native bridge
-    extcall self.bridger.initiate_bridge(CRVUSD, VAULT, amount, self.min_amount)
+    extcall self.bridger.bridge(CRVUSD, VAULT, amount, self.min_amount, value=bridger_cost)
 
     # Message for VAULT to release amount while waiting
-    extcall self.messenger.initiate_fast_bridge(_to, _amount, msg.sender, value=msg.value)
+    extcall self.messenger.initiate_fast_bridge(_to, _amount, msg.sender, value=messaging_cost)
+
+    # Refund the rest of the msg.value
+    if msg.value > bridger_cost + messaging_cost:
+        send(msg.sender, msg.value - bridger_cost - messaging_cost)
 
     return amount
 

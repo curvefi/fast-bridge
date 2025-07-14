@@ -30,7 +30,8 @@ def drpc_api_key():
 @pytest.fixture(scope="function")
 def rpc_url(drpc_api_key):
     """Fixture to generate the correct RPC URL for each chain."""
-    return 'https://lb.drpc.org/ogrpc?network=ethereum&dkey=' + drpc_api_key
+    if drpc_api_key:
+        return 'https://lb.drpc.org/ogrpc?network=ethereum&dkey=' + drpc_api_key
 
 
 @pytest.fixture()
