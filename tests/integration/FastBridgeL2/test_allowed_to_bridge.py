@@ -41,7 +41,7 @@ def test_allowed_to_bridge_after_bridging(forked_env, fast_bridge_l2, crvusd, de
     
     # Bridge 300 crvUSD
     with boa.env.prank(dev_deployer):
-        fast_bridge_l2.bridge(receiver, 300 * 10 ** 18, value=cost)
+        fast_bridge_l2.bridge(crvusd, receiver, 300 * 10 ** 18, value=cost)
     
     # Check allowed range
     min_allowed, max_allowed = fast_bridge_l2.allowed_to_bridge()
@@ -70,7 +70,7 @@ def test_allowed_to_bridge_limit_exhausted(forked_env, fast_bridge_l2, crvusd, d
     
     # Bridge the full limit
     with boa.env.prank(dev_deployer):
-        fast_bridge_l2.bridge(receiver, 100 * 10 ** 18, value=cost)
+        fast_bridge_l2.bridge(crvusd, receiver, 100 * 10 ** 18, value=cost)
     
     # Check allowed range
     min_allowed, max_allowed = fast_bridge_l2.allowed_to_bridge()
@@ -128,7 +128,7 @@ def test_allowed_to_bridge_insufficient_for_min(forked_env, fast_bridge_l2, crvu
     
     # Bridge 850 crvUSD, leaving only 150 available (less than min 200)
     with boa.env.prank(dev_deployer):
-        fast_bridge_l2.bridge(receiver, 850 * 10 ** 18, value=cost)
+        fast_bridge_l2.bridge(crvusd, receiver, 850 * 10 ** 18, value=cost)
     
     # Check allowed range
     min_allowed, max_allowed = fast_bridge_l2.allowed_to_bridge()
@@ -167,7 +167,7 @@ def test_allowed_to_bridge_with_timestamp(forked_env, fast_bridge_l2, crvusd, de
     
     # Bridge the full limit
     with boa.env.prank(dev_deployer):
-        fast_bridge_l2.bridge(receiver, 100 * 10 ** 18, value=cost)
+        fast_bridge_l2.bridge(crvusd, receiver, 100 * 10 ** 18, value=cost)
     
     min_current, max_current = fast_bridge_l2.allowed_to_bridge(current_ts)
     assert max_current < max_default

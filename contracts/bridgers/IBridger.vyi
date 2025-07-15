@@ -1,0 +1,12 @@
+from ethereum.ercs import IERC20
+
+@external
+@payable
+def bridge(_token: IERC20, _to: address, _amount: uint256, _min_amount: uint256=0) -> uint256:
+    ...
+
+
+@external
+@view
+def cost() -> uint256:
+    ...

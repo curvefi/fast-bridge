@@ -13,16 +13,14 @@ version: public(constant(String[8])) = "0.0.1"
 
 from ethereum.ercs import IERC20
 from snekmate.auth import ownable
+from contracts.bridgers import IBridger
 
+implements: IBridger
 initializes: ownable
 exports: (
     ownable.owner,
     ownable.transfer_ownership,
 )
-
-interface IBridger:
-    def cost() -> uint256: view
-    def bridge(_token: IERC20, _to: address, _amount: uint256, _min_amount: uint256=0) -> uint256: payable
 
 interface IMessenger:
     def initiate_fast_bridge(_to: address, _amount: uint256, _lz_fee_refund: address): payable
@@ -93,6 +91,7 @@ def bridger_cost() -> uint256:
 
 
 @external
+@view
 def cost() -> uint256:
     """
     @notice Quote messaging fee in native token. This value has to be provided 
@@ -103,14 +102,17 @@ def cost() -> uint256:
 
 @external
 @payable
-def bridge(_to: address, _amount: uint256, _min_amount: uint256=0) -> uint256:
+def bridge(_token: IERC20, _to: address, _amount: uint256, _min_amount: uint256=0) -> uint256:
     """
     @notice Bridge crvUSD
+    @param _token The token to bridge (only crvUSD is supported)
     @param _to The receiver on destination chain
     @param _amount The amount of crvUSD to deposit, 2^256-1 for the whole available balance
     @param _min_amount Minimum amount to bridge
     @return Bridged amount
     """
+    assert _token == CRVUSD, "Not supported"
+
     amount: uint256 = _amount
     if amount == max_value(uint256):
         amount = min(staticcall CRVUSD.balanceOf(msg.sender), staticcall CRVUSD.allowance(msg.sender, self))
