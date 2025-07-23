@@ -11,7 +11,7 @@ from ethereum.ercs import IERC20
 implements: IBridger
 
 interface IStandardBridge:
-    def bridgeERC20To(_localToken: address, _remoteToken: address, _to: address, _amount: uint256, _minGasLimit: uint32, _extraData: Bytes[1]): payable
+    def bridgeERC20To(_localToken: address, _remoteToken: address, _to: address, _amount: uint256, _minGasLimit: uint32, _extraData: Bytes[1]): nonpayable
 
 interface IOptimismMintableERC20:
     def REMOTE_TOKEN() -> address: view
@@ -31,6 +31,8 @@ def bridge(_token: IERC20, _to: address, _amount: uint256, _min_amount: uint256=
     @param _amount The amount of the token to deposit, 2^256-1 for the whole balance
     @param _min_amount Minimum amount to bridge
     """
+    assert msg.value == 0, "Not supported"
+
     amount: uint256 = _amount
     if amount == max_value(uint256):
         amount = staticcall _token.balanceOf(msg.sender)
