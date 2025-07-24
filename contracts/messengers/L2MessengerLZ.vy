@@ -30,6 +30,7 @@ VAULT_EID: public(immutable(uint32))
 fast_bridge_l2: public(address)
 gas_limit: public(uint128)
 
+
 @deploy
 def __init__(_endpoint: address, _vault_eid: uint32, _gas_limit: uint128):
     """
@@ -58,6 +59,16 @@ def set_fast_bridge_l2(_fast_bridge_l2: address):
     self.fast_bridge_l2 = _fast_bridge_l2
 
 
+@external
+def set_gas_limit(_gas_limit: uint128):
+    """
+    @notice Set gas limit for LZ message on destination chain
+    @param _gas_limit Gas limit
+    """
+    ownable._check_owner()
+    self.gas_limit = _gas_limit
+
+    
 @external
 @view
 def quote_message_fee() -> uint256:
