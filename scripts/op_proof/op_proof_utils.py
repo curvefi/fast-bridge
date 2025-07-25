@@ -5,6 +5,7 @@ from web3.exceptions import ContractCustomError
 from eth_utils import keccak
 from eth_abi import encode
 import rlp
+import time
 
 
 # Constants
@@ -209,6 +210,148 @@ def estimate_prove_gas(
         error_name = error_map.get(error_selector, f"Unknown({error_selector})")
         
         raise ValueError(f"Gas estimation failed with error: {error_name}") from e
+
+
+def get_withdrawal_status(portal: Any, anchor_state_registry: Any, withdrawal_hash: bytes, proof_submitter: str = None) -> str:
+    """Get the current status of a withdrawal.
+    
+    Returns one of:
+    - 'waiting-to-prove': No game available yet
+    - 'ready-to-prove': Game available, not proven
+    - 'waiting-to-finalize': Proven, waiting for challenge period
+    - 'ready-to-finalize': Challenge period passed
+    - 'finalized': Already finalized
+    """
+    try:
+        # Check if finalized
+        finalized = portal.functions.finalizedWithdrawals(withdrawal_hash).call()
+        if finalized:
+            return 'finalized'
+            
+        # Get proof submitter (default to sender if not provided)
+        if not proof_submitter:
+            # Try to get from proofSubmitters
+            try:
+                num_submitters = portal.functions.numProofSubmitters(withdrawal_hash).call()
+                if num_submitters > 0:
+                    proof_submitter = portal.functions.proofSubmitters(
+                        withdrawal_hash, 
+                        num_submitters - 1
+                    ).call()
+            except Exception:
+                return 'ready-to-prove'  # Assume not proven
+        
+        # Check if proven
+        proven_withdrawal = portal.functions.provenWithdrawals(
+            withdrawal_hash,
+            proof_submitter
+        ).call()
+        
+        dispute_game_proxy = proven_withdrawal[0]
+        timestamp = proven_withdrawal[1]
+        
+        if timestamp == 0:
+            return 'ready-to-prove'
+            
+        # Check withdrawal validity
+        try:
+            portal.functions.checkWithdrawal(withdrawal_hash, proof_submitter).call()
+            return 'ready-to-finalize'
+        except ContractCustomError as e:
+            # Build error mapping from ABI
+            error_map = {
+                Web3.keccak(text=f"{err['name']}()")[:4].hex(): err['name']
+                for err in portal.abi if err.get('type') == 'error'
+            }
+            
+            error_selector = str(e.args[0]).replace("0x", "")
+            error_name = error_map.get(error_selector, f"Unknown({error_selector})")
+            
+            # Check specific errors
+            if error_name in ['OptimismPortal_ProofNotOldEnough']:
+                return 'waiting-to-finalize'
+            elif error_name in ['OptimismPortal_InvalidRootClaim']:
+                # Need to check game validity
+                is_proper = anchor_state_registry.functions.isGameProper(dispute_game_proxy).call()
+                is_respected = anchor_state_registry.functions.isGameRespected(dispute_game_proxy).call()
+                is_finalized = anchor_state_registry.functions.isGameFinalized(dispute_game_proxy).call()
+                
+                if not is_proper or not is_respected:
+                    return 'ready-to-prove'  # Need to re-prove
+                elif not is_finalized:
+                    return 'waiting-to-finalize'
+                else:
+                    return 'ready-to-prove'  # Game lost, need to re-prove
+            else:
+                return 'ready-to-prove'
+                
+    except Exception as e:
+        print(f"Error checking status: {e}")
+        return 'unknown'
+
+
+def get_time_to_finalize(portal: Any, withdrawal_hash: bytes, proof_submitter: str = None) -> int:
+    """Get seconds until withdrawal can be finalized."""
+    if not proof_submitter:
+        try:
+            num_submitters = portal.functions.numProofSubmitters(withdrawal_hash).call()
+            if num_submitters > 0:
+                proof_submitter = portal.functions.proofSubmitters(
+                    withdrawal_hash, 
+                    num_submitters - 1
+                ).call()
+        except Exception:
+            return -1  # Not proven
+    
+    # Get proven withdrawal
+    proven_withdrawal = portal.functions.provenWithdrawals(
+        withdrawal_hash,
+        proof_submitter
+    ).call()
+    
+    dispute_game_proxy = proven_withdrawal[0]
+    timestamp = proven_withdrawal[1]
+    
+    if timestamp == 0:
+        return -1  # Not proven yet
+        
+    # Check if using dispute games (post-fault proofs)
+    if dispute_game_proxy != '0x' + '00' * 20:
+        # Get proof maturity delay seconds (7 days)
+        proof_maturity_delay = portal.functions.proofMaturityDelaySeconds().call()
+        
+        # Calculate when it can be finalized
+        can_finalize_at = timestamp + proof_maturity_delay
+        current_time = int(time.time())
+        
+        seconds_remaining = max(0, can_finalize_at - current_time)
+        return seconds_remaining
+    else:
+        # Legacy path (pre-fault proofs) - not implemented
+        raise NotImplementedError("Legacy finalization not implemented")
+
+
+def build_finalize_transaction(portal: Any, withdrawal_tx: tuple, sender: str, proof_submitter: str = None) -> dict:
+    """Build finalize withdrawal transaction."""
+    if proof_submitter:
+        # Use external proof finalizer
+        tx = portal.functions.finalizeWithdrawalTransactionExternalProof(
+            withdrawal_tx,
+            proof_submitter
+        ).build_transaction({
+            'from': sender,
+            'gas': 150000
+        })
+    else:
+        # Standard finalization
+        tx = portal.functions.finalizeWithdrawalTransaction(
+            withdrawal_tx
+        ).build_transaction({
+            'from': sender,
+            'gas': 150000
+        })
+    
+    return tx
 
 
 
