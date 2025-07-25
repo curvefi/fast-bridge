@@ -7,11 +7,7 @@ import requests
 
 # Contract addresses on mainnet
 CONTRACTS = {
-    'L1GatewayRouter': '0x72Ce9c846789fdB6fC1f34aC4AD25Dd9ef7031ef',
-    'L1ERC20Gateway': '0xa3A7B6F88361F48403514059F1F16C8E78d60EeC',
-    'Inbox': '0x4Dbd4fc535Ac27206064B68FfCf827b0A60BAB3f',
     'RollupProxy': '0x5eF0D09d1E6204141B4d37530808eD19f60FBa35',
-    'Bridge': '0x8315177aB297bA92A06054cE80a67Ed4DBd7ed3a',
     'Outbox': '0x760723CD2e632826c38Fef8CD438A4CC7E7E1A40'
 }
 
