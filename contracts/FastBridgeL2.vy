@@ -133,7 +133,7 @@ def bridge(_token: IERC20, _to: address, _amount: uint256, _min_amount: uint256=
     extcall self.bridger.bridge(CRVUSD, VAULT, amount, self.min_amount, value=bridger_cost)
 
     # Message for VAULT to release amount while waiting
-    extcall self.messenger.initiate_fast_bridge(_to, _amount, msg.sender, value=messaging_cost)
+    extcall self.messenger.initiate_fast_bridge(_to, amount, msg.sender, value=messaging_cost)
 
     # Refund the rest of the msg.value
     if msg.value > bridger_cost + messaging_cost:
