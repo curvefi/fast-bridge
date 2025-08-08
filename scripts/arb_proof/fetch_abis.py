@@ -1,108 +1,149 @@
 #!/usr/bin/env python3
-"""Fetch ABIs for Arbitrum contracts from Etherscan."""
+"""
+Fetch ABIs from Etherscan for Arbitrum contracts.
+Automatically detects proxy contracts and fetches implementation ABIs.
+"""
 import os
 import json
 import time
 import requests
+from pathlib import Path
 
-# Contract addresses on mainnet
+# Contract addresses - proxies will be auto-detected
 CONTRACTS = {
-    'RollupProxy': '0x5eF0D09d1E6204141B4d37530808eD19f60FBa35',
-    'Outbox': '0x760723CD2e632826c38Fef8CD438A4CC7E7E1A40'
+    # L1 Ethereum Mainnet
+    "Rollup": {
+        "address": "0x5eF0D09d1E6204141B4d37530808eD19f60FBa35",  # Proxy
+        "chain": "mainnet"
+    },
+    "Outbox": {
+        "address": "0x0B9857ae2D4A3DBe74ffE1d7DF045bb7F96E4840",  # Proxy
+        "chain": "mainnet"
+    },
+    # L2 Arbitrum
+    "ArbSys": {
+        "address": "0x0000000000000000000000000000000000000064",
+        "chain": "arbitrum"
+    },
+    "NodeInterface": {
+        "address": "0x00000000000000000000000000000000000000C8",
+        "chain": "arbitrum"
+    }
 }
 
-# Get API key from environment
-ETHERSCAN_API_KEY = os.getenv('ETHERSCAN_API_KEY')
-if not ETHERSCAN_API_KEY:
-    raise ValueError("ETHERSCAN_API_KEY not found in environment")
-
-# Base URL for Etherscan API
-BASE_URL = "https://api.etherscan.io/api"
-
-# Output directory
-script_path = os.path.dirname(os.path.abspath(__file__))
-abi_path = os.path.join(script_path, 'abi')
-os.makedirs(abi_path, exist_ok=True)
+CHAIN_IDS = {
+    "mainnet": 1,
+    "arbitrum": 42161
+}
 
 
-def fetch_abi(contract_name: str, address: str) -> dict:
-    """Fetch ABI for a contract from Etherscan."""
-    # First try to get the implementation ABI if it's a proxy
+def fetch_abi(contract_name: str, address: str, chain: str) -> dict:
+    """Fetch ABI from Etherscan v2 API, auto-detecting proxy implementations."""
+    api_key = os.getenv("ETHERSCAN_API_KEY")
+    if not api_key:
+        raise ValueError("ETHERSCAN_API_KEY not set in environment")
+    
+    chain_id = CHAIN_IDS[chain]
+    url = "https://api.etherscan.io/v2/api"
+    
+    # First, get source code to check if it's a proxy
     params = {
-        'module': 'contract',
-        'action': 'getsourcecode',
-        'address': address,
-        'apikey': ETHERSCAN_API_KEY
+        "chainid": chain_id,
+        "module": "contract",
+        "action": "getsourcecode",
+        "address": address,
+        "apikey": api_key
     }
     
-    print(f"Fetching ABI for {contract_name} ({address})...")
+    print(f"Fetching {contract_name} from {chain} ({address})...")
+    response = requests.get(url, params=params)
     
-    response = requests.get(BASE_URL, params=params)
+    if response.status_code != 200:
+        raise RuntimeError(f"Failed to fetch contract info: HTTP {response.status_code}")
+    
     data = response.json()
     
-    if data['status'] == '1' and data['result']:
-        result = data['result'][0]
+    # Check if it's a proxy with implementation
+    impl_address = None
+    if data.get("status") == "1" and data.get("result"):
+        result = data["result"][0] if isinstance(data["result"], list) else data["result"]
         
-        # Check if it's a proxy and has implementation
-        if result.get('Implementation') and result.get('Implementation') != '':
-            impl_address = result['Implementation']
-            print(f"  Found proxy implementation at {impl_address}")
-            
-            # Get implementation ABI
-            impl_params = {
-                'module': 'contract',
-                'action': 'getabi',
-                'address': impl_address,
-                'apikey': ETHERSCAN_API_KEY
-            }
-            
-            impl_response = requests.get(BASE_URL, params=impl_params)
-            impl_data = impl_response.json()
-            
-            if impl_data['status'] == '1':
-                print(f"  Using implementation ABI")
-                return json.loads(impl_data['result'])
+        # Check for implementation address (proxy pattern)
+        if result.get("Implementation") and result["Implementation"] != "":
+            impl_address = result["Implementation"]
+            print(f"  Detected proxy -> implementation: {impl_address}")
     
-    # Fallback to regular ABI fetch
-    params = {
-        'module': 'contract',
-        'action': 'getabi',
-        'address': address,
-        'apikey': ETHERSCAN_API_KEY
+    # Now fetch the ABI (either implementation or direct)
+    target_address = impl_address if impl_address else address
+    abi_params = {
+        "chainid": chain_id,
+        "module": "contract",
+        "action": "getabi",
+        "address": target_address,
+        "apikey": api_key
     }
     
-    response = requests.get(BASE_URL, params=params)
+    response = requests.get(url, params=abi_params)
     data = response.json()
     
-    if data['status'] != '1':
-        raise ValueError(f"Failed to fetch ABI for {contract_name}: {data.get('message', 'Unknown error')}")
+    if data.get("status") != "1":
+        print(f"  Warning: Could not fetch ABI for {contract_name}")
+        print(f"  Response: {data.get('result', 'No result')}")
+        return None
     
-    abi = json.loads(data['result'])
-    return abi
-
-
-def save_abi(contract_name: str, abi: dict):
-    """Save ABI to JSON file."""
-    output_file = os.path.join(abi_path, f"{contract_name}.json")
-    with open(output_file, 'w') as f:
-        json.dump(abi, f, indent=2)
-    print(f"  ✅ Saved to {output_file}")
+    try:
+        abi = json.loads(data["result"])
+        print(f"  Success! Got {len(abi)} ABI entries")
+        
+        # If it's a proxy, rename for clarity
+        if impl_address:
+            print(f"  Using implementation ABI from {impl_address}")
+        
+        return abi
+    except json.JSONDecodeError:
+        print("  Error: Invalid JSON in ABI response")
+        return None
 
 
 def main():
-    """Fetch and save all ABIs."""
-    print("Fetching Arbitrum contract ABIs from Etherscan...\n")
+    # Create abis directory
+    abi_dir = Path(__file__).parent / "abis"
+    abi_dir.mkdir(exist_ok=True)
     
-    for contract_name, address in CONTRACTS.items():
-        try:
-            abi = fetch_abi(contract_name, address)
-            save_abi(contract_name, abi)
-            # Rate limit to avoid hitting API limits
-            time.sleep(0.25)
-        except Exception as e:
-            print(f"  ❌ Error fetching {contract_name}: {e}")
+    print("Fetching contract ABIs from Etherscan...")
+    print("=" * 60)
     
-    print("\nDone!")
+    for name, info in CONTRACTS.items():
+        abi = fetch_abi(name, info["address"], info["chain"])
+        
+        if abi:
+            # Save with _impl suffix if it's a proxy contract
+            if name in ["Rollup", "Outbox"]:
+                output_name = f"{name}_impl"
+            else:
+                output_name = name
+                
+            output_file = abi_dir / f"{output_name}.json"
+            with open(output_file, 'w') as f:
+                json.dump(abi, f, indent=2)
+            print(f"  Saved to {output_file}")
+            
+            # Show summary of events
+            events = [item for item in abi if item.get("type") == "event"]
+            if events:
+                event_names = [e['name'] for e in events[:5]]
+                print(f"  Events: {', '.join(event_names)}")
+                if len(events) > 5:
+                    print(f"  ... and {len(events) - 5} more")
+        else:
+            print(f"  Skipping {name} (no ABI available)")
+        
+        # Rate limit
+        time.sleep(0.5)
+        print()
+    
+    print("=" * 60)
+    print("Done! ABIs saved to abis/ directory")
 
 
 if __name__ == "__main__":

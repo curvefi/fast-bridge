@@ -15,7 +15,7 @@ from op_proof_utils import (
 script_path = os.path.dirname(os.path.abspath(__file__))
 abi_path = os.path.join(script_path, 'abi')
 
-DRY_RUN = True
+DRY_RUN = False
 
 # Load environment variables
 DRPC_KEY = os.getenv("DRPC_API_KEY")
@@ -100,49 +100,49 @@ if __name__ == "__main__":
     # Ready to finalize
     print("\n✅ Withdrawal ready to finalize!")
     
-    # # Build finalization transaction
-    # try:
-    #     tx = build_finalize_transaction(portal, withdrawal_tx, deployer.address)
+    # Build finalization transaction
+    try:
+        tx = build_finalize_transaction(portal, withdrawal_tx, deployer.address)
         
-    #     # Estimate gas
-    #     try:
-    #         gas_estimate = portal.functions.finalizeWithdrawalTransaction(
-    #             withdrawal_tx
-    #         ).estimate_gas({'from': deployer.address})
-    #         print(f"\nEstimated gas: {gas_estimate}")
-    #         tx['gas'] = int(gas_estimate * 1.2)  # Add 20% buffer
-    #     except Exception as e:
-    #         print(f"\n⚠️  Gas estimation failed: {e}")
+        # Estimate gas
+        try:
+            gas_estimate = portal.functions.finalizeWithdrawalTransaction(
+                withdrawal_tx
+            ).estimate_gas({'from': deployer.address})
+            print(f"\nEstimated gas: {gas_estimate}")
+            tx['gas'] = int(gas_estimate * 1.2)  # Add 20% buffer
+        except Exception as e:
+            print(f"\n⚠️  Gas estimation failed: {e}")
         
-    #     print("\n=== Finalization Transaction ===")
-    #     print(f"To: {tx['to']}")
-    #     print(f"From: {tx['from']}")
-    #     print(f"Gas: {tx['gas']}")
-    #     print(f"Data: {tx['data'][:66]}...")
+        print("\n=== Finalization Transaction ===")
+        print(f"To: {tx['to']}")
+        print(f"From: {tx['from']}")
+        print(f"Gas: {tx['gas']}")
+        print(f"Data: {tx['data'][:66]}...")
         
-    #     if DRY_RUN:
-    #         print("\n⚠️  Transaction NOT submitted (dry run mode)")
-    #     else:
-    #         # Add gas pricing
-    #         tx['maxFeePerGas'] = w3_l1.eth.gas_price
-    #         tx['maxPriorityFeePerGas'] = w3_l1.eth.gas_price // 100
-    #         tx['nonce'] = w3_l1.eth.get_transaction_count(deployer.address)
+        if DRY_RUN:
+            print("\n⚠️  Transaction NOT submitted (dry run mode)")
+        else:
+            # Add gas pricing
+            tx['maxFeePerGas'] = int(1.5*w3_l1.eth.gas_price)
+            tx['maxPriorityFeePerGas'] = w3_l1.eth.gas_price // 100
+            tx['nonce'] = w3_l1.eth.get_transaction_count(deployer.address)
             
-    #         # Sign and send
-    #         signed_tx = w3_l1.eth.account.sign_transaction(tx, deployer.key)
-    #         tx_hash = w3_l1.eth.send_raw_transaction(signed_tx.raw_transaction)
-    #         print(f"\n✅ Transaction submitted: {tx_hash.hex()}")
+            # Sign and send
+            signed_tx = w3_l1.eth.account.sign_transaction(tx, deployer.key)
+            tx_hash = w3_l1.eth.send_raw_transaction(signed_tx.raw_transaction)
+            print(f"\n✅ Transaction submitted: {tx_hash.hex()}")
             
-    #         # Wait for confirmation
-    #         print("Waiting for confirmation...")
-    #         receipt = w3_l1.eth.wait_for_transaction_receipt(tx_hash)
+            # Wait for confirmation
+            print("Waiting for confirmation...")
+            receipt = w3_l1.eth.wait_for_transaction_receipt(tx_hash)
             
-    #         if receipt['status'] == 1:
-    #             print("\n🎉 Withdrawal finalized successfully!")
-    #         else:
-    #             print("\n❌ Transaction failed")
+            if receipt['status'] == 1:
+                print("\n🎉 Withdrawal finalized successfully!")
+            else:
+                print("\n❌ Transaction failed")
                 
-    # except Exception as e:
-    #     print(f"\n❌ Error building finalization transaction: {e}")
-    #     import traceback
-    #     traceback.print_exc()
+    except Exception as e:
+        print(f"\n❌ Error building finalization transaction: {e}")
+        import traceback
+        traceback.print_exc()
