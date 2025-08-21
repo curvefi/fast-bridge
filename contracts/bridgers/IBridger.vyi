@@ -1,5 +1,11 @@
 from ethereum.ercs import IERC20
 
+event Bridge:
+    token: indexed(IERC20)
+    sender: indexed(address)
+    receiver: indexed(address)
+    amount: uint256
+
 @external
 @payable
 def bridge(_token: IERC20, _to: address, _amount: uint256, _min_amount: uint256=0) -> uint256:

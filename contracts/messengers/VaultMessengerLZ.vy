@@ -27,6 +27,9 @@ exports: (
 interface IVault:
     def mint(_receiver: address, _amount: uint256) -> uint256: nonpayable
 
+event SetVault:
+    vault: IVault
+
 vault: public(IVault)
 
 @deploy
@@ -42,15 +45,16 @@ def __init__(_endpoint: address):
 
 
 @external
-def set_vault(_vault: address):
+def set_vault(_vault: IVault):
     """
     @notice Set vault address
     @param _vault new vault address
     """
     ownable._check_owner()
-    assert _vault != empty(address), "Bad vault"
+    assert _vault != empty(IVault), "Bad vault"
 
-    self.vault = IVault(_vault)
+    self.vault = _vault
+    log SetVault(vault=_vault)
 
 
 @payable

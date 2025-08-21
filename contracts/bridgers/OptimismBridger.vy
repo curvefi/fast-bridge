@@ -52,6 +52,8 @@ def bridge(_token: IERC20, _to: address, _amount: uint256, _min_amount: uint256=
             250_000,  # Gas to use to complete the transfer on the receiving side.
             b"",  # Optional identify extra data.
     )
+
+    log IBridger.Bridge(token=_token, sender=msg.sender, receiver=_to, amount=amount)
     return amount
 
 

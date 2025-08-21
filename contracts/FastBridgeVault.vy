@@ -29,8 +29,24 @@ interface IMinter:  # ControllerFactory
     def debt_ceiling(of: address) -> uint256: view
     def debt_ceiling_residual(of: address) -> uint256: view
 
+event Minted:
+    receiver: indexed(address)
+    amount: uint256
+
+event SetFee:
+    fee: uint256
+
+event SetFeeReceiver:
+    fee_receiver: address
+
 event SetKilled:
+    actor: indexed(address)
     killed: bool
+
+event Recovered:
+    token: indexed(IERC20)
+    receiver: address
+    amount: uint256
 
 struct RecoverInput:
     coin: IERC20
@@ -70,6 +86,7 @@ def __init__(_ownership: address, _emergency: address, _minters: DynArray[addres
 
     # initially no fee
     self.fee_receiver = 0xa2Bcd1a4Efbd04B63cd03f5aFf2561106ebCCE00  # FeeCollector
+    log SetFeeReceiver(fee_receiver=0xa2Bcd1a4Efbd04B63cd03f5aFf2561106ebCCE00)
 
 
 @view
@@ -132,6 +149,8 @@ def mint(_receiver: address, _amount: uint256) -> uint256:
     if available != 0:
         assert extcall CRVUSD.transfer(_receiver, available, default_return_value=True)
     self.balanceOf[_receiver] = amount - available
+
+    log Minted(receiver=_receiver, amount=available)
     return available
 
 
@@ -145,6 +164,7 @@ def set_killed(_status: bool, _who: address=empty(address)):
     access_control._check_role(KILLER_ROLE, msg.sender)
 
     self.is_killed[_who] = _status
+    log SetKilled(actor=_who, killed=_status)
 
 
 @external
@@ -157,6 +177,7 @@ def set_fee(_new_fee: uint256):
     assert _new_fee <= 10 ** 18
 
     self.fee = _new_fee
+    log SetFee(fee=_new_fee)
 
 
 @external
@@ -169,6 +190,7 @@ def set_fee_receiver(_new_fee_receiver: address):
     assert _new_fee_receiver != empty(address)
 
     self.fee_receiver = _new_fee_receiver
+    log SetFeeReceiver(fee_receiver=_new_fee_receiver)
 
 
 @external
@@ -186,3 +208,4 @@ def recover(_recovers: DynArray[RecoverInput, 32], _receiver: address):
         if amount == max_value(uint256):
             amount = staticcall input.coin.balanceOf(self)
         extcall input.coin.transfer(_receiver, amount, default_return_value=True)  # do not need safe transfer
+        log Recovered(token=input.coin, receiver=_receiver, amount=amount)

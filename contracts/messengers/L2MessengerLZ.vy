@@ -26,6 +26,12 @@ exports: (
     OApp.nextNonce,
 )
 
+event SetFastBridgeL2:
+    fast_bridge_l2: address
+
+event SetGasLimit:
+    gas_limit: uint128
+
 VAULT_EID: public(immutable(uint32))
 fast_bridge_l2: public(address)
 gas_limit: public(uint128)
@@ -47,6 +53,7 @@ def __init__(_endpoint: address, _vault_eid: uint32, _gas_limit: uint128):
 
     VAULT_EID = _vault_eid
     self.gas_limit = _gas_limit
+    log SetGasLimit(gas_limit=_gas_limit)
 
 
 @external
@@ -59,6 +66,7 @@ def set_fast_bridge_l2(_fast_bridge_l2: address):
     assert _fast_bridge_l2 != empty(address), "Bad value"
 
     self.fast_bridge_l2 = _fast_bridge_l2
+    log SetFastBridgeL2(fast_bridge_l2=_fast_bridge_l2)
 
 
 @external
@@ -68,7 +76,9 @@ def set_gas_limit(_gas_limit: uint128):
     @param _gas_limit Gas limit
     """
     ownable._check_owner()
+
     self.gas_limit = _gas_limit
+    log SetGasLimit(gas_limit=_gas_limit)
 
     
 @external

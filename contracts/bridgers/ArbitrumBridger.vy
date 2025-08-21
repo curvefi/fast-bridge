@@ -45,6 +45,8 @@ def bridge(_token: IERC20, _to: address, _amount: uint256, _min_amount: uint256=
             amount,
             b"",  # the inboundEscrowAndCall functionality has been disabled, so no data is allowed
     )
+
+    log IBridger.Bridge(token=_token, sender=msg.sender, receiver=_to, amount=amount)
     return amount
 
 
