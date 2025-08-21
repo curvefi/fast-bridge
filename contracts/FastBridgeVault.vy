@@ -55,9 +55,6 @@ is_killed: public(HashMap[address, bool])
 def __init__(_ownership: address, _emergency: address, _minters: DynArray[address, 4]):
     access_control.__init__()
 
-    access_control._set_role_admin(MINTER_ROLE, access_control.DEFAULT_ADMIN_ROLE)
-    access_control._set_role_admin(KILLER_ROLE, access_control.DEFAULT_ADMIN_ROLE)
-
     for minter: address in _minters:
         access_control._grant_role(MINTER_ROLE, minter)
 
@@ -68,7 +65,7 @@ def __init__(_ownership: address, _emergency: address, _minters: DynArray[addres
     # Allow ControllerFactory to rug debt ceiling and burn coins
     extcall CRVUSD.approve(MINTER.address, max_value(uint256))
 
-    self.fee = 0  # initially no fee
+    # initially no fee
     self.fee_receiver = 0xa2Bcd1a4Efbd04B63cd03f5aFf2561106ebCCE00  # FeeCollector
 
 
@@ -101,8 +98,9 @@ def schedule_rug() -> bool:
     @notice Schedule rugging debt ceiling if necessary. Callable by anyone
     @return Boolean whether need to rug or not
     """
-    self.rug_scheduled = self._need_to_rug()
-    return self.rug_scheduled
+    rug_scheduled: bool = self._need_to_rug()
+    self.rug_scheduled = rug_scheduled
+    return rug_scheduled
 
 
 @external
