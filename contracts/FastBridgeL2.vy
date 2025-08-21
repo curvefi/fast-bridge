@@ -59,7 +59,12 @@ messenger: public(IMessenger)
 
 @deploy
 def __init__(_crvusd: IERC20, _vault: address, _bridger: IBridger, _messenger: IMessenger):
-
+    """
+    @param _crvusd Address of crvUSD on L2
+    @param _vault Address of Vault on mainnet
+    @param _bridger Address of native bridge adapter
+    @param _messenger Address of fast transport layer adapter
+    """
     ownable.__init__()
     ownable._transfer_ownership(tx.origin) # for case of proxy deployment
 
@@ -88,6 +93,7 @@ def __init__(_crvusd: IERC20, _vault: address, _bridger: IBridger, _messenger: I
 def messaging_cost() -> uint256:
     """
     Messaging cost to pass message to VAULT (Fast Bridge)
+    @return Native token amount needed for messenger
     """
     return staticcall self.messenger.quote_message_fee()
 
@@ -97,6 +103,7 @@ def messaging_cost() -> uint256:
 def bridger_cost() -> uint256:
     """
     Bridger cost to bridge crvUSD to VAULT (Native Bridge)
+    @return Native token amount needed for bridger
     """
     return staticcall self.bridger.cost()
 
@@ -107,6 +114,7 @@ def cost() -> uint256:
     """
     @notice Quote messaging fee in native token. This value has to be provided 
     as msg.value when calling bridge(). This is not fee in crvUSD that is paid to the vault!
+    @return Native token amount needed for bridge tx
     """
     return self.messaging_cost() + self.bridger_cost()
 

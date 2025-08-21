@@ -86,6 +86,7 @@ def set_gas_limit(_gas_limit: uint128):
 def quote_message_fee() -> uint256:
     """
     @notice Quote message fee in native token
+    @return Native token amount needed for message
     """
     # step 1: mock message 
     encoded_message: Bytes[OApp.MAX_MESSAGE_SIZE] = abi_encode(self, empty(uint256))
@@ -106,6 +107,7 @@ def initiate_fast_bridge(_to: address, _amount: uint256, _lz_fee_refund: address
     Only callable by FastBridgeL2
     @param _to Address to mint to
     @param _amount Amount to mint
+    @param _lz_fee_refund Address to deposit excess fees from transaction
     """
     assert msg.sender == self.fast_bridge_l2, "Only FastBridgeL2!"
     

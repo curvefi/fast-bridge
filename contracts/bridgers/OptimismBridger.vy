@@ -25,9 +25,9 @@ interface IOptimismMintableERC20:
 @external
 def bridge(_token: IERC20, _to: address, _amount: uint256, _min_amount: uint256=0) -> uint256:
     """
-    @notice Bridge a token to Optimism mainnet using the L1 Standard Bridge
+    @notice Bridge a token to mainnet using the Standard Bridge
     @param _token The token to bridge
-    @param _to The address to deposit the token to on L2
+    @param _to The address to deposit the token to on L1
     @param _amount The amount of the token to deposit, 2^256-1 for the whole balance
     @param _min_amount Minimum amount to bridge
     """

@@ -69,6 +69,11 @@ is_killed: public(HashMap[address, bool])
 
 @deploy
 def __init__(_ownership: address, _emergency: address, _minters: DynArray[address, 4]):
+    """
+    @param _ownership Address of owner admin
+    @param _emergency Address of emergency(kill operations) admin
+    @param _minters Addresses of contracts able to mint tokens from vault
+    """
     access_control.__init__()
 
     for minter: address in _minters:
