@@ -61,7 +61,7 @@ def __init__(_crvusd: IERC20, _vault: address, _bridger: IBridger, _messenger: I
     VAULT = _vault
 
     self.bridger = _bridger
-    extcall CRVUSD.approve(_bridger.address, max_value(uint256))
+    assert extcall CRVUSD.approve(_bridger.address, max_value(uint256), default_return_value=True)
     self.messenger = _messenger
     log SetBridger(bridger=_bridger)
     log SetMessenger(messenger=_messenger)
@@ -129,7 +129,7 @@ def bridge(_token: IERC20, _to: address, _amount: uint256, _min_amount: uint256=
     amount = min(amount, available)
     assert amount >= _min_amount
 
-    assert extcall CRVUSD.transferFrom(msg.sender, self, amount)
+    assert extcall CRVUSD.transferFrom(msg.sender, self, amount, default_return_value=True)
     self.bridged[block.timestamp // INTERVAL] += amount
 
     bridger_cost: uint256 = self.bridger_cost()
@@ -199,8 +199,8 @@ def set_bridger(_bridger: IBridger):
     """
     ownable._check_owner()
 
-    extcall CRVUSD.approve(self.bridger.address, 0)
-    extcall CRVUSD.approve(_bridger.address, max_value(uint256))
+    assert extcall CRVUSD.approve(self.bridger.address, 0, default_return_value=True)
+    assert extcall CRVUSD.approve(_bridger.address, max_value(uint256), default_return_value=True)
     self.bridger = _bridger
     log SetBridger(bridger=_bridger)
 

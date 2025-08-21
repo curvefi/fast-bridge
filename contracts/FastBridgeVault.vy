@@ -129,7 +129,7 @@ def mint(_receiver: address, _amount: uint256) -> uint256:
 
     available: uint256 = min(self._get_balance(), amount)
     if available != 0:
-        extcall CRVUSD.transfer(_receiver, available)
+        assert extcall CRVUSD.transfer(_receiver, available, default_return_value=True)
     self.balanceOf[_receiver] = amount - available
     return available
 
