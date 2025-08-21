@@ -57,13 +57,18 @@ def __init__(_crvusd: IERC20, _vault: address, _bridger: IBridger, _messenger: I
     ownable.__init__()
     ownable._transfer_ownership(tx.origin) # for case of proxy deployment
 
+    assert _crvusd != empty(IERC20), "Bad crvusd value"
+    assert _vault != empty(address), "Bad vault value"
     CRVUSD = _crvusd
     VAULT = _vault
 
+    assert _bridger != empty(IBridger), "Bad bridger value"
     self.bridger = _bridger
     assert extcall CRVUSD.approve(_bridger.address, max_value(uint256), default_return_value=True)
-    self.messenger = _messenger
     log SetBridger(bridger=_bridger)
+
+    assert _messenger != empty(IMessenger), "Bad messanger value"
+    self.messenger = _messenger
     log SetMessenger(messenger=_messenger)
 
     self.min_amount = 10**18
@@ -101,9 +106,9 @@ def cost() -> uint256:
 
 
 @view
-def _get_available() -> uint256:
+def _get_available(ts: uint256=block.timestamp) -> uint256:
     limit: uint256 = self.limit
-    bridged: uint256 = self.bridged[block.timestamp // INTERVAL]
+    bridged: uint256 = self.bridged[ts // INTERVAL]
     return limit - min(bridged, limit)
 
 
@@ -119,6 +124,7 @@ def bridge(_token: IERC20, _to: address, _amount: uint256, _min_amount: uint256=
     @return Bridged amount
     """
     assert _token == CRVUSD, "Not supported"
+    assert _to != empty(address), "Bad receiver"
 
     amount: uint256 = _amount
     if amount == max_value(uint256):
@@ -157,7 +163,7 @@ def allowed_to_bridge(_ts: uint256=block.timestamp) -> (uint256, uint256):
     @param _ts Timestamp at which to check (current by default)
     @return (minimum, maximum) amounts allowed to bridge
     """
-    available: uint256 = self._get_available()
+    available: uint256 = self._get_available(_ts)
 
     # Funds transferred to the contract are lost :(
     min_amount: uint256 = self.min_amount
@@ -198,6 +204,7 @@ def set_bridger(_bridger: IBridger):
     @param _bridger Contract initiating actual bridge transaction
     """
     ownable._check_owner()
+    assert _bridger != empty(IBridger), "Bad bridger value"
 
     assert extcall CRVUSD.approve(self.bridger.address, 0, default_return_value=True)
     assert extcall CRVUSD.approve(_bridger.address, max_value(uint256), default_return_value=True)
@@ -212,6 +219,7 @@ def set_messenger(_messenger: IMessenger):
     @param _messenger Contract passing bridge tx fast
     """
     ownable._check_owner()
+    assert _messenger != empty(IMessenger), "Bad messanger value"
 
     self.messenger = _messenger
     log SetMessenger(messenger=_messenger)

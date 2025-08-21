@@ -27,6 +27,7 @@ def bridge(_token: IERC20, _to: address, _amount: uint256, _min_amount: uint256=
     @param _min_amount Minimum amount to bridge
     """
     assert msg.value == 0, "Not supported"
+    assert _to != empty(address), "Bad receiver"
 
     amount: uint256 = _amount
     if amount == max_value(uint256):

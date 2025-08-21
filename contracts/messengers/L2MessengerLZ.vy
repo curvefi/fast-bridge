@@ -56,6 +56,8 @@ def set_fast_bridge_l2(_fast_bridge_l2: address):
     @param _fast_bridge_l2 FastBridgeL2 address
     """
     ownable._check_owner()
+    assert _fast_bridge_l2 != empty(address), "Bad value"
+
     self.fast_bridge_l2 = _fast_bridge_l2
 
 

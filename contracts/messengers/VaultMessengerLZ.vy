@@ -48,6 +48,8 @@ def set_vault(_vault: address):
     @param _vault new vault address
     """
     ownable._check_owner()
+    assert _vault != empty(address), "Bad vault"
+
     self.vault = IVault(_vault)
 
 

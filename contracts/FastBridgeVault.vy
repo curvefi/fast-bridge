@@ -56,8 +56,11 @@ def __init__(_ownership: address, _emergency: address, _minters: DynArray[addres
     access_control.__init__()
 
     for minter: address in _minters:
+        assert minter != empty(address), "Bad minter"
         access_control._grant_role(MINTER_ROLE, minter)
 
+    assert _ownership != empty(address), "Bad owner"
+    assert _emergency != empty(address), "Bad emergency"
     access_control._revoke_role(access_control.DEFAULT_ADMIN_ROLE, msg.sender)
     access_control._grant_role(access_control.DEFAULT_ADMIN_ROLE, _ownership)
     access_control._grant_role(KILLER_ROLE, _emergency)
