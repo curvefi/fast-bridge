@@ -100,6 +100,13 @@ def cost() -> uint256:
     return self.messaging_cost() + self.bridger_cost()
 
 
+@view
+def _get_available() -> uint256:
+    limit: uint256 = self.limit
+    bridged: uint256 = self.bridged[block.timestamp // INTERVAL]
+    return limit - min(bridged, limit)
+
+
 @external
 @payable
 def bridge(_token: IERC20, _to: address, _amount: uint256, _min_amount: uint256=0) -> uint256:
@@ -118,7 +125,7 @@ def bridge(_token: IERC20, _to: address, _amount: uint256, _min_amount: uint256=
         amount = min(staticcall CRVUSD.balanceOf(msg.sender), staticcall CRVUSD.allowance(msg.sender, self))
 
     # Apply daily limit
-    available: uint256 = self.limit - self.bridged[block.timestamp // INTERVAL]
+    available: uint256 = self._get_available()
     amount = min(amount, available)
     assert amount >= _min_amount
 
@@ -150,7 +157,7 @@ def allowed_to_bridge(_ts: uint256=block.timestamp) -> (uint256, uint256):
     @param _ts Timestamp at which to check (current by default)
     @return (minimum, maximum) amounts allowed to bridge
     """
-    available: uint256 = self.limit - self.bridged[_ts // INTERVAL]
+    available: uint256 = self._get_available()
 
     # Funds transferred to the contract are lost :(
     min_amount: uint256 = self.min_amount
