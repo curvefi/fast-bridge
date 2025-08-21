@@ -174,7 +174,7 @@ def set_fee_receiver(_new_fee_receiver: address):
 def recover(_recovers: DynArray[RecoverInput, 32], _receiver: address):
     """
     @notice Recover ERC20 tokens from this contract. Needed in case of minter malfunction.
-    @dev Callable only by owner and emergency owner
+    @dev Callable only by owner
     @param _recovers (Token, amount) to recover
     @param _receiver Receiver of coins
     """
