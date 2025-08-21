@@ -152,9 +152,8 @@ def allowed_to_bridge(_ts: uint256=block.timestamp) -> (uint256, uint256):
     """
     available: uint256 = self.limit - self.bridged[_ts // INTERVAL]
 
-    balance: uint256 = staticcall CRVUSD.balanceOf(self)  # Someone threw money by mistake
+    # Funds transferred to the contract are lost :(
     min_amount: uint256 = self.min_amount
-    min_amount -= min(min_amount, balance)
 
     if available < min_amount:  # Not enough for bridge initiation
         return (0, 0)
