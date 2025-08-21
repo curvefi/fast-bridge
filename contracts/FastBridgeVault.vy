@@ -118,9 +118,14 @@ def mint(_receiver: address, _amount: uint256) -> uint256:
 
     amount: uint256 = self.balanceOf[_receiver]
     if access_control.hasRole[MINTER_ROLE][msg.sender]:
+        amount += _amount
+
+        # Apply fee
         fee: uint256 = _amount * self.fee // 10 ** 18
-        self.balanceOf[self.fee_receiver] += fee
-        amount += _amount - fee
+        fee_receiver: address = self.fee_receiver
+        if _receiver != fee_receiver:
+            self.balanceOf[fee_receiver] += fee
+            amount -= fee
 
     available: uint256 = min(self._get_balance(), amount)
     if available != 0:
