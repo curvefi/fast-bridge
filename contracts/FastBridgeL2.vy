@@ -234,7 +234,7 @@ def set_messenger(_messenger: IMessenger):
     @param _messenger Contract passing bridge tx fast
     """
     ownable._check_owner()
-    assert _messenger != empty(IMessenger), "Bad messanger value"
+    assert _messenger != empty(IMessenger), "Bad messenger value"
 
     self.messenger = _messenger
     log SetMessenger(messenger=_messenger)

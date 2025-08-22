@@ -29,10 +29,13 @@ exports: (
 event SetFastBridgeL2:
     fast_bridge_l2: address
 
+event SetVaultEid:
+    vault_eid: uint32
+
 event SetGasLimit:
     gas_limit: uint128
 
-VAULT_EID: public(immutable(uint32))
+vault_eid: public(uint32)
 fast_bridge_l2: public(address)
 gas_limit: public(uint128)
 
@@ -51,7 +54,7 @@ def __init__(_endpoint: address, _vault_eid: uint32, _gas_limit: uint128):
 
     OApp.__init__(_endpoint, tx.origin)
 
-    VAULT_EID = _vault_eid
+    self.vault_eid = _vault_eid
     self.gas_limit = _gas_limit
     log SetGasLimit(gas_limit=_gas_limit)
 
@@ -67,6 +70,19 @@ def set_fast_bridge_l2(_fast_bridge_l2: address):
 
     self.fast_bridge_l2 = _fast_bridge_l2
     log SetFastBridgeL2(fast_bridge_l2=_fast_bridge_l2)
+
+
+@external
+def set_vault_eid(_vault_eid: uint32):
+    """
+    @notice Set vault EID
+    @param _vault_eid Vault EID
+    """
+    ownable._check_owner()
+    assert _vault_eid != empty(uint32), "Bad eid"
+
+    self.vault_eid = _vault_eid
+    log SetVaultEid(vault_eid=_vault_eid)
 
 
 @external
@@ -96,7 +112,7 @@ def quote_message_fee() -> uint256:
     options = OptionsBuilder.addExecutorLzReceiveOption(options, self.gas_limit, 0)
 
     # step 3: quote fee
-    return OApp._quote(VAULT_EID, encoded_message, options, False).nativeFee
+    return OApp._quote(self.vault_eid, encoded_message, options, False).nativeFee
 
 
 @external
@@ -120,4 +136,4 @@ def initiate_fast_bridge(_to: address, _amount: uint256, _lz_fee_refund: address
 
     # step 3: send message
     fees: OApp.MessagingFee = OApp.MessagingFee(nativeFee=msg.value, lzTokenFee=0)
-    OApp._lzSend(VAULT_EID, encoded_message, options, fees, _lz_fee_refund)
+    OApp._lzSend(self.vault_eid, encoded_message, options, fees, _lz_fee_refund)
