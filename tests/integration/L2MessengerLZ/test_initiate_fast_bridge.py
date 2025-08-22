@@ -4,7 +4,7 @@ from conftest import to_bytes32
 
 def test_default_behavior(forked_env, l2_messenger, dev_deployer, fast_bridge_l2):
     # Setup peers for testing
-    vault_eid = l2_messenger.VAULT_EID()
+    vault_eid = l2_messenger.vault_eid()
     with boa.env.prank(dev_deployer):
         peer_bytes = to_bytes32(l2_messenger.address) # set peer to self (vanity deployment)
         l2_messenger.setPeer(vault_eid, peer_bytes)

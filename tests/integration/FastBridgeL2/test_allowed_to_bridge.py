@@ -95,8 +95,8 @@ def test_allowed_to_bridge_with_contract_balance(forked_env, fast_bridge_l2, crv
     # Check allowed range
     min_allowed, max_allowed = fast_bridge_l2.allowed_to_bridge()
     
-    # Min amount should be reduced by the contract balance
-    assert min_allowed == 50 * 10 ** 18
+    # Min amount should not be reduced by the contract balance
+    assert min_allowed == 100 * 10 ** 18
     assert max_allowed == 1000 * 10 ** 18
     
     # Send more to make balance exceed min_amount
@@ -104,8 +104,8 @@ def test_allowed_to_bridge_with_contract_balance(forked_env, fast_bridge_l2, crv
     
     min_allowed, max_allowed = fast_bridge_l2.allowed_to_bridge()
     
-    # Min amount should be 0 as balance exceeds min_amount
-    assert min_allowed == 0
+    # Min amount should not be reduced by the contract balance
+    assert min_allowed == 100 * 10 ** 18
     assert max_allowed == 1000 * 10 ** 18
 
 
