@@ -20,6 +20,7 @@ initializes: ownable
 exports: (
     ownable.owner,
     ownable.transfer_ownership,
+    ownable.renounce_ownership,
 )
 
 interface IMessenger:

@@ -20,7 +20,6 @@ exports: (
     OApp.peers,
     OApp.setPeer,
     OApp.setDelegate,
-    OApp.setReadChannel,
     OApp.isComposeMsgSender,
     OApp.allowInitializePath,
     OApp.nextNonce,
