@@ -22,6 +22,7 @@ exports: (
     access_control.grantRole,
     access_control.revokeRole,
     access_control.renounceRole,
+    access_control.set_role_admin
 )
 
 interface IMinter:  # ControllerFactory
