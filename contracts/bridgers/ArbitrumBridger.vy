@@ -37,7 +37,7 @@ def bridge(_token: IERC20, _to: address, _amount: uint256, _min_amount: uint256=
 
     gateway: address = staticcall StandardArbERC20(_token.address).l2Gateway()
     if staticcall _token.allowance(self, gateway) < amount:
-        extcall _token.approve(gateway, max_value(uint256))
+        assert extcall _token.approve(gateway, max_value(uint256), default_return_value=True)
 
     extcall L2Gateway(gateway).outboundTransfer(
             staticcall StandardArbERC20(_token.address).l1Address(),

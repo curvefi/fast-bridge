@@ -42,7 +42,7 @@ def bridge(_token: IERC20, _to: address, _amount: uint256, _min_amount: uint256=
 
     bridge: IStandardBridge = staticcall IOptimismMintableERC20(_token.address).BRIDGE()
     if staticcall _token.allowance(self, bridge.address) < amount:
-        extcall _token.approve(bridge.address, max_value(uint256))
+        assert extcall _token.approve(bridge.address, max_value(uint256), default_return_value=True)
 
     extcall bridge.bridgeERC20To(
             _token.address,

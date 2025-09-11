@@ -87,7 +87,7 @@ def __init__(_ownership: address, _emergency: address, _minters: DynArray[addres
     access_control._grant_role(KILLER_ROLE, _emergency)
 
     # Allow ControllerFactory to rug debt ceiling and burn coins
-    extcall CRVUSD.approve(MINTER.address, max_value(uint256))
+    assert extcall CRVUSD.approve(MINTER.address, max_value(uint256), default_return_value=True)
 
     # initially no fee
     self.fee_receiver = 0xa2Bcd1a4Efbd04B63cd03f5aFf2561106ebCCE00  # FeeCollector
