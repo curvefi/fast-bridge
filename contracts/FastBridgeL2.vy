@@ -26,12 +26,6 @@ interface IMessenger:
     def initiate_fast_bridge(_to: address, _amount: uint256, _lz_fee_refund: address): payable
     def quote_message_fee() -> uint256: view
 
-event Bridge:
-    token: indexed(IERC20)
-    sender: indexed(address)
-    receiver: indexed(address)
-    amount: uint256
-
 event SetMinAmount:
     min_amount: uint256
 
@@ -166,7 +160,7 @@ def bridge(_token: IERC20, _to: address, _amount: uint256, _min_amount: uint256=
     if msg.value > bridger_cost + messaging_cost:
         send(msg.sender, msg.value - bridger_cost - messaging_cost)
 
-    log Bridge(token=_token, sender=msg.sender, receiver=_to, amount=amount)
+    log IBridger.Bridge(token=_token, sender=msg.sender, receiver=_to, amount=amount)
     return amount
 
 
