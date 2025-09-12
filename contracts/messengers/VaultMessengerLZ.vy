@@ -27,6 +27,11 @@ exports: (
 interface IVault:
     def mint(_receiver: address, _amount: uint256) -> uint256: nonpayable
 
+event Receive:
+    origin: OApp.Origin
+    guid: bytes32
+    message: Bytes[OApp.MAX_MESSAGE_SIZE]
+
 event SetVault:
     vault: IVault
 
@@ -84,3 +89,4 @@ def lzReceive(
 
     # Pass mint command to vault
     extcall self.vault.mint(to, amount)
+    log Receive(origin=_origin, guid=_guid, message=_message)

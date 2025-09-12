@@ -25,6 +25,11 @@ exports: (
     OApp.nextNonce,
 )
 
+event Initiated:
+    to: address
+    amount: uint256
+    lz_fee_refund: address
+
 event SetFastBridgeL2:
     fast_bridge_l2: address
 
@@ -54,6 +59,7 @@ def __init__(_endpoint: address, _vault_eid: uint32, _gas_limit: uint128):
     OApp.__init__(_endpoint, tx.origin)
 
     self.vault_eid = _vault_eid
+    log SetVaultEid(vault_eid=_vault_eid)
     self.gas_limit = _gas_limit
     log SetGasLimit(gas_limit=_gas_limit)
 
@@ -136,3 +142,4 @@ def initiate_fast_bridge(_to: address, _amount: uint256, _lz_fee_refund: address
     # step 3: send message
     fees: OApp.MessagingFee = OApp.MessagingFee(nativeFee=msg.value, lzTokenFee=0)
     OApp._lzSend(self.vault_eid, encoded_message, options, fees, _lz_fee_refund)
+    log Initiated(to=_to, amount=_amount, lz_fee_refund=_lz_fee_refund)
