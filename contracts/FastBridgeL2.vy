@@ -173,6 +173,9 @@ def allowed_to_bridge(_ts: uint256=block.timestamp) -> (uint256, uint256):
     @param _ts Timestamp at which to check (current by default)
     @return (minimum, maximum) amounts allowed to bridge
     """
+    if _ts < block.timestamp:  # outdated
+        return (0, 0)
+
     available: uint256 = self._get_available(_ts)
 
     # Funds transferred to the contract are lost :(
