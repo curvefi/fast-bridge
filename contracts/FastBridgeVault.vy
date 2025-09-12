@@ -34,6 +34,9 @@ event Minted:
     receiver: indexed(address)
     amount: uint256
 
+event RugScheduled:
+    status: bool
+
 event SetFee:
     fee: uint256
 
@@ -113,6 +116,7 @@ def _get_balance() -> uint256:
         extcall MINTER.rug_debt_ceiling(self)
         if not self._need_to_rug():
             self.rug_scheduled = False
+            log RugScheduled(status=False)
         else:
             return 0
     return staticcall CRVUSD.balanceOf(self)
@@ -126,6 +130,7 @@ def schedule_rug() -> bool:
     """
     rug_scheduled: bool = self._need_to_rug()
     self.rug_scheduled = rug_scheduled
+    log RugScheduled(status=rug_scheduled)
     return rug_scheduled
 
 
