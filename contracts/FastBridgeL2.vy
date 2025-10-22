@@ -43,7 +43,7 @@ event SetMessenger:
 CRVUSD: public(immutable(IERC20))
 VAULT: public(immutable(address))
 
-INTERVAL: constant(uint256) = 86400  # 1 day
+INTERVAL: constant(uint256) = 86400 * 7 // 4  # 7/4=1.75 days, or 42 hours
 min_amount: public(uint256)  # Minimum amount to initiate bridge. Might be costy to claim on Ethereum
 limit: public(uint256)  # Maximum amount to bridge in an INTERVAL, so there's no queue to resolve to claim on Ethereum
 bridged: public(HashMap[uint256, uint256])  # Amounts of bridge coins per INTERVAL
