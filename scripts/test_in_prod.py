@@ -60,7 +60,7 @@ def account_load(fname):
 
 def set_env(simulation: bool, mainnet: bool):
     if simulation:
-        boa.fork(ETH_NETWORK if mainnet else L2_NETWORK, block_identifier="latest", allow_dirty=True)
+        boa.fork(ETH_NETWORK if mainnet else L2_NETWORK, block_identifier=399927920, allow_dirty=True)
         boa.env.eoa = "0x71F718D3e4d1449D1502A6A7595eb84eBcCB1683"
     else:
         boa.set_network_env(ETH_NETWORK if mainnet else L2_NETWORK)
@@ -68,8 +68,8 @@ def set_env(simulation: bool, mainnet: bool):
 
 
 def test_seeded(simulate):
-    set_env(simulate, True)
-    seed()
+    # set_env(simulate, True)
+    # seed()
 
     set_env(simulate, False)
     initiate_fast_bridge()
