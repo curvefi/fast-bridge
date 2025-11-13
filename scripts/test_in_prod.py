@@ -8,9 +8,9 @@ from eth_account import account
 
 
 L2_NETWORK = (
-    f"https://opt-mainnet.g.alchemy.com/v2/{os.environ['WEB3_OPTIMISM_MAINNET_ALCHEMY_API_KEY']}"
+    f"https://rpc.frax.com"  # ALTER
 )
-ETH_NETWORK = f"https://eth-mainnet.alchemyapi.io/v2/{os.environ['WEB3_ETHEREUM_MAINNET_ALCHEMY_PROJECT_ID']}"
+ETH_NETWORK = f"https://eth-mainnet.alchemyapi.io/v2/{os.environ['WEB3_ETHEREUM_MAINNET_ALCHEMY_PROJECT_ID']}"  # ALTER
 API_KEY = os.environ["ETHERSCAN_V2_TOKEN"]
 
 IERC20 = boa.load_abi("interfaces/IERC20.json")

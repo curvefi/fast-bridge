@@ -10,10 +10,10 @@ from eth_account import account
 
 
 L2_NETWORK = (
-    f"https://opt-mainnet.g.alchemy.com/v2/{os.environ['WEB3_OPTIMISM_MAINNET_ALCHEMY_API_KEY']}"
+    f"https://rpc.frax.com"  # ALTER
 )
-ETH_NETWORK = f"https://eth-mainnet.alchemyapi.io/v2/{os.environ['WEB3_ETHEREUM_MAINNET_ALCHEMY_PROJECT_ID']}"
-API_KEY = os.environ["ETHERSCAN_V2_TOKEN"]
+ETH_NETWORK = f"https://eth-mainnet.alchemyapi.io/v2/{os.environ['WEB3_ETHEREUM_MAINNET_ALCHEMY_PROJECT_ID']}"  # ALTER
+API_KEY = os.environ["ETHERSCAN_V2_TOKEN"]  # ALTER
 
 LZ_ENDPOINT = "0x1a44076050125825900e736c501f859c50fE728c"  # L1 (Ethereum)
 
@@ -188,7 +188,7 @@ def account_load(fname):
 
 def set_env(simulation: bool, mainnet: bool):
     if simulation:
-        boa.fork(ETH_NETWORK if mainnet else L2_NETWORK, block_identifier="latest")
+        boa.fork(ETH_NETWORK if mainnet else L2_NETWORK, block_identifier="latest", allow_dirty=True)
         boa.env.eoa = "0x71F718D3e4d1449D1502A6A7595eb84eBcCB1683"
     else:
         boa.set_network_env(ETH_NETWORK if mainnet else L2_NETWORK)
@@ -201,25 +201,20 @@ if __name__ == "__main__":
 
     # L1
     set_env(simulate, True)
-
     fast_bridge_vault, vault_messenger = deploy_l1()
-    # fast_bridge_vault = "0x97d024859B68394122B3d0bb407dD7299cC8E937"
-    # vault_messenger = "0x4A10d0FF9e394f3A3dCdb297973Db40Ce304b44f"
+    # fast_bridge_vault = "0x5EF620631AA46e7d2F6f963B6bE4F6823521B9eC"
+    # vault_messenger = "0xEC0e1c5Cc900D87b1FA44584310C43f82F75870F"
 
     # L2
     set_env(simulate, False)
-
     fast_bridge_l2, l2_messenger, bridger = deploy_l2(fast_bridge_vault)
-    # fast_bridge_l2 = "0x60F542FCdCb5Edb26a42514A8434CE4c772F2fd7"
-    # l2_messenger = "0x345BBb82a124A2ab64aD515605274F36b6e5aB3e"
-    setup_l2(vault_messenger, l2_messenger)
-
-    # set_limits(fast_bridge_l2)
-
-    # revoke_ownership_l2(fast_bridge_l2, l2_messenger)
+    # fast_bridge_l2 = "0x3fE593E651Cd0B383AD36b75F4159f30BB0631A6"
+    # l2_messenger = "0x672C38258729060bF443BA28FaEF4F2db154C6fC"
+    setup_l2(addr(vault_messenger), addr(l2_messenger))
+    # set_limits(addr(fast_bridge_l2))
+    # revoke_ownership_l2(addr(fast_bridge_l2), addr(l2_messenger))
 
     # L1
     set_env(simulate, True)
-    setup_l1(vault_messenger, l2_messenger)
-
-    # revoke_ownership_l1(fast_bridge_vault, vault_messenger)
+    setup_l1(addr(vault_messenger), addr(l2_messenger))
+    # revoke_ownership_l1(addr(fast_bridge_vault), addr(vault_messenger))
