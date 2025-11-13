@@ -8,18 +8,18 @@ from eth_account import account
 
 
 L2_NETWORK = (
-    f"https://rpc.frax.com"  # ALTER
+    f"https://arb-mainnet.g.alchemy.com/v2/{os.environ['WEB3_ARBITRUM_MAINNET_ALCHEMY_API_KEY']}"  # ALTER
 )
 ETH_NETWORK = f"https://eth-mainnet.alchemyapi.io/v2/{os.environ['WEB3_ETHEREUM_MAINNET_ALCHEMY_PROJECT_ID']}"  # ALTER
 API_KEY = os.environ["ETHERSCAN_V2_TOKEN"]
 
 IERC20 = boa.load_abi("interfaces/IERC20.json")
-CRVUSD_L2 = "0xC52D7F23a2e460248Db6eE192Cb23dD12bDDCbf6"  # ALTER
+CRVUSD_L2 = "0x498Bf2B1e120FeD3ad3D42EA2165E9b73f99C1e5"  # ALTER
 CRVUSD = "0xf939E0A03FB07F59A73314E73794Be0E57ac1b4E"
 AMOUNT = 10 ** 18  # Amount of crvUSD to test with
 
-FAST_BRIDGE_VAULT = "0x97d024859B68394122B3d0bb407dD7299cC8E937"  # ALTER
-FAST_BRIDGE_L2 = "0x60F542FCdCb5Edb26a42514A8434CE4c772F2fd7"  # ALTER
+FAST_BRIDGE_VAULT = "0xadB10d2d5A95e58Ddb1A0744a0d2D7B55Db7843D"  # ALTER
+FAST_BRIDGE_L2 = "0x1F2aF270029d028400265Ce1dd0919BA8780dAe1"  # ALTER
 
 
 def seed(fast_bridge_vault=FAST_BRIDGE_VAULT):
@@ -36,6 +36,7 @@ def initiate_fast_bridge(fast_bridge_l2=FAST_BRIDGE_L2):
     crvusd.approve(fast_bridge_l2, AMOUNT)
 
     fast_bridge_l2 = boa.load_partial("contracts/FastBridgeL2.vy").at(FAST_BRIDGE_L2)
+    bridger = boa.load_partial("contracts/bridgers/ArbitrumBridger.vy").at("0x8A5a5299f35614Ac558AA290C2d5856EDeC1B5Ad")
     fast_bridge_l2.bridge(crvusd, boa.env.eoa, AMOUNT, value=fast_bridge_l2.cost())
     print("Fast Bridge started")
 

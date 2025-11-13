@@ -196,6 +196,7 @@ def set_env(simulation: bool, mainnet: bool):
 
 
 if __name__ == "__main__":
+    addr = lambda obj: getattr(obj, "address", obj)  # noqa
     simulate = True
     # simulate = False
 
