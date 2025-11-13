@@ -26,9 +26,11 @@ L2_OWNER = "0x28c4A1Fa47EEE9226F8dE7D6AF0a41C62Ca98267"  # ALTER
 def deploy_l1():
     vault_messenger = (boa.load_partial("contracts/messengers/VaultMessengerLZ.vy")
                        .deploy(LZ_ENDPOINT))
-
+                       # .at("0x4A10d0FF9e394f3A3dCdb297973Db40Ce304b44f"))  # noqa
     fast_bridge_vault = (boa.load_partial("contracts/FastBridgeVault.vy")
                          .deploy(OWNERSHIP_DAO, EMERGENCY_DAO, [vault_messenger]))
+                         # .at("0x97d024859B68394122B3d0bb407dD7299cC8E937"))  # noqa
+    vault_messenger.set_vault(fast_bridge_vault)
 
     print(
         f"Deployment on L1:\n"
