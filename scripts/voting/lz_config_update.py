@@ -126,7 +126,7 @@ with vote(
     # live_env=CustomEnv(rpc=RPC_URL, account=account_load("curve")),
 ):
     cur_config = get_current_config(endpoint, "0x15945526b5C32D963391343e9Bc080838fe3e6d9", lz_data['ethereum']['metadata']['receiveUln302'], 30110, 2)
-    print(f"Current config: {cur_config}")
+    print(f"[L1 ARB] Current config: {cur_config}")
     # Arbitrum
     endpoint.setConfig(
         "0x15945526b5C32D963391343e9Bc080838fe3e6d9",  # oapp
@@ -140,13 +140,12 @@ with vote(
         ]
     )
     upd_config = get_current_config(endpoint, "0x15945526b5C32D963391343e9Bc080838fe3e6d9", lz_data['ethereum']['metadata']['receiveUln302'], 30110, 2)
-    print(f"Updated config: {upd_config}")
+    print(f"[L1 ARB] Updated config: {upd_config}")
     ARB_RPC = f"https://lb.drpc.org/arbitrum/{DRPC_KEY}"
     with xvote(ARBITRUM, rpc=ARB_RPC):
         l2_endpoint = boa.from_etherscan("0x1a44076050125825900e736c501f859c50fE728c", api_key=ETHERSCAN_API_KEY)
-        cur_config = get_current_config(l2_endpoint, "0x14e11C1B8F04A7dE306a7B5bf21bbca0D5cF79ff", lz_data['arbitrum']['metadata']['sendUln302'], 30110, 2)
-        print(f"sendlib: {lz_data['arbitrum']['metadata']['sendUln302']}")
-        print(f"Current config: {cur_config}")
+        cur_config = get_current_config(l2_endpoint, "0x14e11C1B8F04A7dE306a7B5bf21bbca0D5cF79ff", lz_data['arbitrum']['metadata']['sendUln302'], 30101, 2)
+        print(f"[L2 ARB] Current config: {cur_config}")
         l2_endpoint.setConfig(
             "0x14e11C1B8F04A7dE306a7B5bf21bbca0D5cF79ff",  # oapp
             "0x975bcD720be66659e3EB3C0e4F1866a3020E493A",  # SendUln302 lib
@@ -164,53 +163,64 @@ with vote(
                 )
             ]
         )
-        upd_config = get_current_config(l2_endpoint, "0x14e11C1B8F04A7dE306a7B5bf21bbca0D5cF79ff", lz_data['arbitrum']['metadata']['sendUln302'], 30110, 2)
-        print(f"Updated config: {upd_config}")
-        
-    # # Optimism
-    # vault_messenger = boa.from_etherscan("0x4A10d0FF9e394f3A3dCdb297973Db40Ce304b44f", api_key=ETHERSCAN_API_KEY)
-    # vault_messenger.setPeer(30111, Web3.to_bytes(hexstr="0x7a1f2f99B65f6c3B2413648c86C0326CfF8D8837"))  # New L2Messenger
-    # endpoint.setConfig(
-    #     vault_messenger,  # oapp
-    #     "0xc02Ab410f0734EFa3F14628780e6e695156024C2",  # ReceiveUln302 lib
-    #     [
-    #         (
-    #             30111,  # eid
-    #             2,  # configType (ULN for send/receive)
-    #             get_config(450, l1_dvns),  # config
-    #         )
-    #     ]
-    # )
+        upd_config = get_current_config(l2_endpoint, "0x14e11C1B8F04A7dE306a7B5bf21bbca0D5cF79ff", lz_data['arbitrum']['metadata']['sendUln302'], 30101, 2)
+        print(f"[L2 ARB] Updated config: {upd_config}")
 
-    # # Fraxtal
-    # endpoint.setConfig(
-    #     "0xEC0e1c5Cc900D87b1FA44584310C43f82F75870F",  # oapp
-    #     "0xc02Ab410f0734EFa3F14628780e6e695156024C2",  # ReceiveUln302 lib
-    #     [
-    #         (
-    #             30255,  # eid
-    #             2,  # configType (ULN for send/receive)
-    #             get_config(450, l1_dvns),  # config
-    #         )
-    #     ]
-    # )
-    # FRAX_RPC = f"https://lb.drpc.org/fraxtal/{DRPC_KEY}"
-    # with xvote(FRAXTAL, rpc=FRAX_RPC):
-    #     l2_endpoint = boa.from_etherscan("0x1a44076050125825900e736c501f859c50fE728c", api_key=ETHERSCAN_API_KEY)
-    #     l2_endpoint.setConfig(
-    #         "0x672C38258729060bF443BA28FaEF4F2db154C6fC",  # oapp
-    #         "0x377530cdA84DFb2673bF4d145DCF0C4D7fdcB5b6",  # SendUln302 lib
-    #         [
-    #             (
-    #                 30101,  # eid
-    #                 2,  # configType (ULN for send/receive)
-    #                 get_config(
-    #                     450,
-    #                     [
-    #                         "0xcce466a522984415bc91338c232d98869193d46e",  # LayerZero Labs
-    #                         "0x05df4949f0b4dc4c4b1adc0e01700bc669e935c3",  # Swiss Stake
-    #                     ],
-    #                 ),  # config
-    #             )
-    #         ]
-    #     )
+    # Optimism
+    vault_messenger = boa.from_etherscan("0x4A10d0FF9e394f3A3dCdb297973Db40Ce304b44f", api_key=ETHERSCAN_API_KEY)
+    vault_messenger.setPeer(30111, Web3.to_bytes(hexstr="0x7a1f2f99B65f6c3B2413648c86C0326CfF8D8837"))  # New L2Messenger
+    cur_config = get_current_config(endpoint, vault_messenger, lz_data['ethereum']['metadata']['receiveUln302'], 30111, 2)
+    print(f"[L1 OPT] Current config: {cur_config}")
+    endpoint.setConfig(
+        vault_messenger,  # oapp
+        "0xc02Ab410f0734EFa3F14628780e6e695156024C2",  # ReceiveUln302 lib
+        [
+            (
+                30111,  # eid
+                2,  # configType (ULN for send/receive)
+                get_config(450, l1_dvns),  # config
+            )
+        ]
+    )
+    upd_config = get_current_config(endpoint, vault_messenger, lz_data['ethereum']['metadata']['receiveUln302'], 30111, 2)
+    print(f"[L1 OPT] Updated config: {upd_config}")
+    # Fraxtal
+    cur_config = get_current_config(endpoint, "0xEC0e1c5Cc900D87b1FA44584310C43f82F75870F", lz_data['ethereum']['metadata']['receiveUln302'], 30255, 2)
+    print(f"[L1 FRAX] Current config: {cur_config}")
+    endpoint.setConfig(
+        "0xEC0e1c5Cc900D87b1FA44584310C43f82F75870F",  # oapp
+        "0xc02Ab410f0734EFa3F14628780e6e695156024C2",  # ReceiveUln302 lib
+        [
+            (
+                30255,  # eid
+                2,  # configType (ULN for send/receive)
+                get_config(450, l1_dvns),  # config
+            )
+        ]
+    )
+    upd_config = get_current_config(endpoint, "0xEC0e1c5Cc900D87b1FA44584310C43f82F75870F", lz_data['ethereum']['metadata']['receiveUln302'], 30255, 2)
+    print(f"[L1 FRAX] Updated config: {upd_config}")
+    FRAX_RPC = f"https://lb.drpc.org/fraxtal/{DRPC_KEY}"
+    with xvote(FRAXTAL, rpc=FRAX_RPC):
+        l2_endpoint = boa.from_etherscan("0x1a44076050125825900e736c501f859c50fE728c", api_key=ETHERSCAN_API_KEY)
+        cur_config = get_current_config(l2_endpoint, "0x672C38258729060bF443BA28FaEF4F2db154C6fC", lz_data['fraxtal']['metadata']['sendUln302'], 30101, 2)
+        print(f"[L2 FRAX] Current config: {cur_config}")
+        l2_endpoint.setConfig(
+            "0x672C38258729060bF443BA28FaEF4F2db154C6fC",  # oapp
+            "0x377530cdA84DFb2673bF4d145DCF0C4D7fdcB5b6",  # SendUln302 lib
+            [
+                (
+                    30101,  # eid
+                    2,  # configType (ULN for send/receive)
+                    get_config(
+                        450,
+                        [
+                            "0xcce466a522984415bc91338c232d98869193d46e",  # LayerZero Labs
+                            "0x05df4949f0b4dc4c4b1adc0e01700bc669e935c3",  # Swiss Stake
+                        ],
+                    ),  # config
+                )
+            ]
+        )
+        upd_config = get_current_config(l2_endpoint, "0x672C38258729060bF443BA28FaEF4F2db154C6fC", lz_data['fraxtal']['metadata']['sendUln302'], 30101, 2)
+        print(f"[L2 FRAX] Updated config: {upd_config}")
