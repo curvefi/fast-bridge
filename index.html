@@ -1,0 +1,2137 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>FastBridge Monitor</title>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&display=swap");
+      :root {
+        color-scheme: light;
+        --bg: #f8f7f4;
+        --ink: #1c1c1c;
+        --muted: #5f5f5f;
+        --line: #d9d6cf;
+        --panel: #ffffff;
+        --accent: #0c4a6e;
+        --accent-2: #a16207;
+        --good: #1b5e20;
+        --warn: #9a3412;
+        --info: #1d4ed8;
+        --pill: #efede7;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "IBM Plex Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+        background: var(--bg);
+        color: var(--ink);
+      }
+
+      main {
+        max-width: 1100px;
+        margin: 32px auto 64px;
+        padding: 0 20px;
+      }
+
+      header {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 24px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 30px;
+        letter-spacing: 0.2px;
+      }
+
+      .subtle {
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .tabbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        border-bottom: 1px solid var(--line);
+        margin-bottom: 18px;
+      }
+
+      .tabset > input[type="radio"] {
+        position: absolute;
+        left: -9999px;
+      }
+
+      .tabbar label {
+        padding: 8px 14px;
+        border: 1px solid var(--line);
+        border-bottom: none;
+        background: var(--pill);
+        cursor: pointer;
+        border-radius: 8px 8px 0 0;
+        font-weight: 600;
+      }
+
+      #tab-optimism:checked ~ .tabbar label[for="tab-optimism"],
+      #tab-fraxtal:checked ~ .tabbar label[for="tab-fraxtal"],
+      #tab-arbitrum:checked ~ .tabbar label[for="tab-arbitrum"] {
+        background: var(--panel);
+        color: var(--accent);
+      }
+
+      .panels {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        padding: 18px;
+        border-radius: 0 10px 10px 10px;
+      }
+
+      .panel {
+        display: none;
+      }
+
+      #tab-optimism:checked ~ .panels [data-panel="optimism"],
+      #tab-fraxtal:checked ~ .panels [data-panel="fraxtal"],
+      #tab-arbitrum:checked ~ .panels [data-panel="arbitrum"] {
+        display: block;
+      }
+
+      h2 {
+        margin: 0 0 12px;
+        font-size: 22px;
+      }
+
+      h3 {
+        margin: 26px 0 10px;
+        font-size: 16px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: var(--muted);
+      }
+
+      .summary {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .summary-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 12px;
+      }
+
+      .metric {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 12px;
+        background: #fffefb;
+      }
+
+      .metric dt {
+        margin: 0 0 4px;
+        font-size: 12px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+      }
+
+      .metric dd {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 600;
+      }
+
+      .metric dd.mini {
+        margin-top: 6px;
+        font-size: 12px;
+        font-weight: 400;
+        color: var(--muted);
+      }
+
+      .table-wrap {
+        overflow-x: auto;
+        margin-top: 16px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+      }
+
+      th,
+      td {
+        text-align: left;
+        padding: 10px 8px;
+        border-bottom: 1px solid var(--line);
+        vertical-align: top;
+      }
+
+      th {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        color: var(--muted);
+      }
+
+      th:nth-child(4),
+      td:nth-child(4) {
+        text-align: right;
+      }
+
+      th:nth-child(5),
+      td:nth-child(5),
+      th:nth-child(6),
+      td:nth-child(6) {
+        text-align: right;
+      }
+
+      tbody tr:hover {
+        background: #f4f2ec;
+      }
+
+      tbody tr.stale td {
+        background: #f0f0f0;
+        box-shadow: inset 0 0 0 1px #cfcfcf;
+      }
+
+      a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+
+      a:hover {
+        text-decoration: underline;
+      }
+
+      .addr-highlight {
+        background: #e5e7eb;
+        box-shadow: inset 0 0 0 1px #cbd5e1;
+        border-radius: 4px;
+      }
+
+      .tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 600;
+        background: var(--pill);
+        color: var(--ink);
+        margin-right: 6px;
+        white-space: nowrap;
+      }
+
+      .status-initiated {
+        background: #e3e4e7;
+        color: #2b2b2b;
+      }
+
+      .status-minted,
+      .status-finalized {
+        background: #d1f2d7;
+        color: var(--good);
+      }
+
+      .status-ready {
+        background: #dbeafe;
+        color: var(--info);
+      }
+
+      .status-proof {
+        background: #ede9fe;
+        color: #6b21a8;
+      }
+
+      .status-waiting {
+        background: #fde68a;
+        color: var(--warn);
+      }
+
+      .toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-top: 18px;
+      }
+
+      button {
+        border: 1px solid var(--line);
+        background: #fff;
+        padding: 6px 10px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 600;
+      }
+
+      button:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+
+      .note {
+        margin-top: 10px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      .rpc-settings {
+        margin: 8px 0 20px;
+        padding: 12px 16px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: #fffefb;
+      }
+
+      .rpc-settings summary {
+        cursor: pointer;
+        font-weight: 600;
+        margin-bottom: 10px;
+      }
+
+      .rpc-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 12px;
+        margin-top: 12px;
+      }
+
+      .rpc-row {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      .rpc-row > * {
+        flex: 1;
+        min-width: 220px;
+      }
+
+      .rpc-grid label {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        font-size: 12px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+      }
+
+      .rpc-grid input,
+      .rpc-grid select {
+        padding: 8px 10px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        font-size: 13px;
+        background: #fff;
+        color: var(--ink);
+        text-transform: none;
+        letter-spacing: 0;
+      }
+
+      .rpc-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .rpc-note {
+        font-size: 12px;
+        color: var(--muted);
+        text-transform: none;
+        letter-spacing: 0;
+      }
+
+      .contracts {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 16px;
+      }
+
+      .contracts dl {
+        margin: 0;
+      }
+
+      .contracts dt {
+        font-weight: 700;
+        margin: 0 0 6px;
+      }
+
+      .contracts dd {
+        margin: 0 0 6px;
+      }
+
+      .global-links {
+        margin-top: 24px;
+        padding: 14px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: #fffefb;
+      }
+
+      .global-links p {
+        margin: 6px 0;
+      }
+
+      @media (max-width: 720px) {
+        header {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="tabset">
+        <input id="tab-arbitrum" type="radio" name="tabset" checked />
+        <input id="tab-optimism" type="radio" name="tabset" />
+        <input id="tab-fraxtal" type="radio" name="tabset" />
+        <div class="tabbar">
+          <label for="tab-arbitrum">Arbitrum</label>
+          <label for="tab-optimism">Optimism</label>
+          <label for="tab-fraxtal">Fraxtal</label>
+        </div>
+
+        <header>
+          <div>
+            <h1>FastBridge Monitor</h1>
+            <div class="subtle">Live view of LayerZero FastBridge activity (last 100 messages per network).</div>
+          </div>
+          <div class="subtle">Data sources: LayerZero Scan API + RPC endpoints.</div>
+        </header>
+
+        <details class="rpc-settings">
+          <summary>RPC settings</summary>
+          <div class="rpc-grid">
+            <div class="rpc-row">
+              <label>
+                DRPC key
+                <input id="rpc-drpc-key" type="text" placeholder="Optional" autocomplete="off" />
+              </label>
+              <label>
+                Ankr key
+                <input id="rpc-ankr-key" type="text" placeholder="Optional" autocomplete="off" />
+              </label>
+            </div>
+            <div class="rpc-row">
+              <label>
+                Custom Ethereum RPC
+                <input id="rpc-custom-ethereum" type="text" placeholder="https://..." autocomplete="off" />
+              </label>
+              <label>
+                Custom Arbitrum RPC
+                <input id="rpc-custom-arbitrum" type="text" placeholder="https://..." autocomplete="off" />
+              </label>
+              <label>
+                Custom Optimism RPC
+                <input id="rpc-custom-optimism" type="text" placeholder="https://..." autocomplete="off" />
+              </label>
+              <label>
+                Custom Fraxtal RPC
+                <input id="rpc-custom-fraxtal" type="text" placeholder="https://..." autocomplete="off" />
+              </label>
+            </div>
+            <div class="rpc-row">
+              <label>
+                Provider
+                <select id="rpc-provider">
+                  <option value="default">Default</option>
+                  <option value="drpc">DRPC</option>
+                  <option value="ankr">Ankr</option>
+                  <option value="custom">Custom</option>
+                </select>
+              </label>
+              <div class="rpc-actions">
+                <button type="button" id="rpc-apply">Apply</button>
+                <button type="button" id="rpc-reset">Reset to default</button>
+                <span class="subtle" id="rpc-status"></span>
+              </div>
+            </div>
+            <div class="rpc-note">
+              Keys are stored in your browser (localStorage) and are only sent to the selected RPC endpoint over HTTPS.
+            </div>
+          </div>
+        </details>
+
+        <div class="panels">
+          <section class="panel" data-panel="arbitrum">
+            <h2>Arbitrum</h2>
+            <div class="summary">
+              <div class="summary-row">
+                <dl class="metric">
+                  <dt>Vault Balance (crvUSD)</dt>
+                  <dd data-net="arbitrum" data-field="vault">Loading...</dd>
+                </dl>
+                <dl class="metric">
+                  <dt>Bridge Cooldown (crvUSD)</dt>
+                  <dd data-net="arbitrum" data-field="cooldown">Loading...</dd>
+                  <dd class="mini" data-net="arbitrum" data-field="cooldown-note"></dd>
+                </dl>
+              </div>
+              <div class="summary-row">
+                <dl class="metric">
+                  <dt>Tokens In Native Bridge</dt>
+                  <dd data-net="arbitrum" data-field="native">Loading...</dd>
+                </dl>
+                <dl class="metric">
+                  <dt>Awaiting Proof</dt>
+                  <dd data-net="arbitrum" data-field="proof">n/a</dd>
+                </dl>
+                <dl class="metric">
+                  <dt>Waiting For Finalization</dt>
+                  <dd data-net="arbitrum" data-field="waiting">Loading...</dd>
+                </dl>
+              </div>
+            </div>
+
+            <div class="toolbar">
+              <strong>Latest Transactions</strong>
+              <div>
+                <button type="button" data-action="refresh" data-net="arbitrum">Refresh</button>
+                <span class="subtle" data-net="arbitrum" data-field="updated"></span>
+              </div>
+            </div>
+
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Date (L2)</th>
+                    <th>Sender (L2)</th>
+                    <th>Receiver (L1)</th>
+                    <th>Amount (crvUSD)</th>
+                    <th>User Status</th>
+                    <th>Backend Status</th>
+                  </tr>
+                </thead>
+                <tbody data-net="arbitrum" data-field="table"></tbody>
+              </table>
+            </div>
+
+            <p class="note">Amounts decoded from LayerZero payload: abi-encode(address,uint256).</p>
+
+            <h3>Contracts</h3>
+            <div class="contracts">
+              <dl>
+                <dt>Deployment on L1</dt>
+                <dd>FastBridgeVault: <a href="https://etherscan.io/address/0xadB10d2d5A95e58Ddb1A0744a0d2D7B55Db7843D" target="_blank" rel="noreferrer">0xadB10d2d5A95e58Ddb1A0744a0d2D7B55Db7843D</a></dd>
+                <dd>VaultMessengerLZ: <a href="https://etherscan.io/address/0x15945526b5C32D963391343e9Bc080838fe3e6d9" target="_blank" rel="noreferrer">0x15945526b5C32D963391343e9Bc080838fe3e6d9</a></dd>
+              </dl>
+              <dl>
+                <dt>Deployment on L2</dt>
+                <dd>FastBridgeL2: <a href="https://arbiscan.io/address/0x1F2aF270029d028400265Ce1dd0919BA8780dAe1" target="_blank" rel="noreferrer">0x1F2aF270029d028400265Ce1dd0919BA8780dAe1</a></dd>
+                <dd>L2MessengerLZ: <a href="https://arbiscan.io/address/0x14e11C1B8F04A7dE306a7B5bf21bbca0D5cF79ff" target="_blank" rel="noreferrer">0x14e11C1B8F04A7dE306a7B5bf21bbca0D5cF79ff</a></dd>
+                <dd>Bridger: <a href="https://arbiscan.io/address/0x8A5a5299f35614Ac558AA290C2d5856EDeC1B5Ad" target="_blank" rel="noreferrer">0x8A5a5299f35614Ac558AA290C2d5856EDeC1B5Ad</a></dd>
+              </dl>
+            </div>
+          </section>
+
+          <section class="panel" data-panel="optimism">
+            <h2>Optimism</h2>
+            <div class="summary">
+              <div class="summary-row">
+                <dl class="metric">
+                  <dt>Vault Balance (crvUSD)</dt>
+                  <dd data-net="optimism" data-field="vault">Loading...</dd>
+                </dl>
+                <dl class="metric">
+                  <dt>Bridge Cooldown (crvUSD)</dt>
+                  <dd data-net="optimism" data-field="cooldown">Loading...</dd>
+                  <dd class="mini" data-net="optimism" data-field="cooldown-note"></dd>
+                </dl>
+              </div>
+              <div class="summary-row">
+                <dl class="metric">
+                  <dt>Tokens In Native Bridge</dt>
+                  <dd data-net="optimism" data-field="native">Loading...</dd>
+                </dl>
+                <dl class="metric">
+                  <dt>Awaiting Proof</dt>
+                  <dd data-net="optimism" data-field="proof">Loading...</dd>
+                </dl>
+                <dl class="metric">
+                  <dt>Waiting For Finalization</dt>
+                  <dd data-net="optimism" data-field="waiting">Loading...</dd>
+                </dl>
+              </div>
+            </div>
+
+            <div class="toolbar">
+              <strong>Latest Transactions</strong>
+              <div>
+                <button type="button" data-action="refresh" data-net="optimism">Refresh</button>
+                <span class="subtle" data-net="optimism" data-field="updated"></span>
+              </div>
+            </div>
+
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Date (L2)</th>
+                    <th>Sender (L2)</th>
+                    <th>Receiver (L1)</th>
+                    <th>Amount</th>
+                    <th>User Status</th>
+                    <th>Backend Status</th>
+                  </tr>
+                </thead>
+                <tbody data-net="optimism" data-field="table"></tbody>
+              </table>
+            </div>
+
+            <p class="note">Amounts decoded from LayerZero payload: abi-encode(address,uint256).</p>
+
+            <h3>Contracts</h3>
+            <div class="contracts">
+              <dl>
+                <dt>Deployment on L1</dt>
+                <dd>FastBridgeVault: <a href="https://etherscan.io/address/0x97d024859B68394122B3d0bb407dD7299cC8E937" target="_blank" rel="noreferrer">0x97d024859B68394122B3d0bb407dD7299cC8E937</a></dd>
+                <dd>VaultMessengerLZ: <a href="https://etherscan.io/address/0x4A10d0FF9e394f3A3dCdb297973Db40Ce304b44f" target="_blank" rel="noreferrer">0x4A10d0FF9e394f3A3dCdb297973Db40Ce304b44f</a></dd>
+              </dl>
+              <dl>
+                <dt>Deployment on L2</dt>
+                <dd>FastBridgeL2: <a href="https://optimistic.etherscan.io/address/0xD16d5eC345Dd86Fb63C6a9C43c517210F1027914" target="_blank" rel="noreferrer">0xD16d5eC345Dd86Fb63C6a9C43c517210F1027914</a></dd>
+                <dd>L2MessengerLZ: <a href="https://optimistic.etherscan.io/address/0x7a1f2f99B65f6c3B2413648c86C0326CfF8D8837" target="_blank" rel="noreferrer">0x7a1f2f99B65f6c3B2413648c86C0326CfF8D8837</a></dd>
+                <dd>Bridger: <a href="https://optimistic.etherscan.io/address/0x5dFAFdA4D5B26bE0e99e6A8C6B1eB97eD99B9bD3" target="_blank" rel="noreferrer">0x5dFAFdA4D5B26bE0e99e6A8C6B1eB97eD99B9bD3</a></dd>
+              </dl>
+            </div>
+          </section>
+
+          <section class="panel" data-panel="fraxtal">
+            <h2>Fraxtal</h2>
+            <div class="summary">
+              <div class="summary-row">
+                <dl class="metric">
+                  <dt>Vault Balance (crvUSD)</dt>
+                  <dd data-net="fraxtal" data-field="vault">Loading...</dd>
+                </dl>
+                <dl class="metric">
+                  <dt>Bridge Cooldown (crvUSD)</dt>
+                  <dd data-net="fraxtal" data-field="cooldown">Loading...</dd>
+                  <dd class="mini" data-net="fraxtal" data-field="cooldown-note"></dd>
+                </dl>
+              </div>
+              <div class="summary-row">
+                <dl class="metric">
+                  <dt>Tokens In Native Bridge</dt>
+                  <dd data-net="fraxtal" data-field="native">Loading...</dd>
+                </dl>
+                <dl class="metric">
+                  <dt>Awaiting Proof</dt>
+                  <dd data-net="fraxtal" data-field="proof">Loading...</dd>
+                </dl>
+                <dl class="metric">
+                  <dt>Waiting For Finalization</dt>
+                  <dd data-net="fraxtal" data-field="waiting">Loading...</dd>
+                </dl>
+              </div>
+            </div>
+
+            <div class="toolbar">
+              <strong>Latest Transactions</strong>
+              <div>
+                <button type="button" data-action="refresh" data-net="fraxtal">Refresh</button>
+                <span class="subtle" data-net="fraxtal" data-field="updated"></span>
+              </div>
+            </div>
+
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Date (L2)</th>
+                    <th>Sender (L2)</th>
+                    <th>Receiver (L1)</th>
+                    <th>Amount</th>
+                    <th>User Status</th>
+                    <th>Backend Status</th>
+                  </tr>
+                </thead>
+                <tbody data-net="fraxtal" data-field="table"></tbody>
+              </table>
+            </div>
+
+            <p class="note">Amounts decoded from LayerZero payload: abi-encode(address,uint256).</p>
+
+            <h3>Contracts</h3>
+            <div class="contracts">
+              <dl>
+                <dt>Deployment on L1</dt>
+                <dd>FastBridgeVault: <a href="https://etherscan.io/address/0x5EF620631AA46e7d2F6f963B6bE4F6823521B9eC" target="_blank" rel="noreferrer">0x5EF620631AA46e7d2F6f963B6bE4F6823521B9eC</a></dd>
+                <dd>VaultMessengerLZ: <a href="https://etherscan.io/address/0xEC0e1c5Cc900D87b1FA44584310C43f82F75870F" target="_blank" rel="noreferrer">0xEC0e1c5Cc900D87b1FA44584310C43f82F75870F</a></dd>
+              </dl>
+              <dl>
+                <dt>Deployment on L2</dt>
+                <dd>FastBridgeL2: <a href="https://fraxscan.com/address/0x3fE593E651Cd0B383AD36b75F4159f30BB0631A6" target="_blank" rel="noreferrer">0x3fE593E651Cd0B383AD36b75F4159f30BB0631A6</a></dd>
+                <dd>L2MessengerLZ: <a href="https://fraxscan.com/address/0x672C38258729060bF443BA28FaEF4F2db154C6fC" target="_blank" rel="noreferrer">0x672C38258729060bF443BA28FaEF4F2db154C6fC</a></dd>
+                <dd>Bridger: <a href="https://fraxscan.com/address/0xeB896fB7D1AaE921d586B0E5a037496aFd3E2412" target="_blank" rel="noreferrer">0xeB896fB7D1AaE921d586B0E5a037496aFd3E2412</a></dd>
+              </dl>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <div class="global-links">
+        <p><strong>FastBridge UI:</strong> <a href="https://crvhub.com/bridge" target="_blank" rel="noreferrer">crvhub.com/bridge</a></p>
+        <p><strong>ControllerFactory:</strong> <a href="https://etherscan.io/address/0xC9332fdCB1C491Dcc683bAe86Fe3cb70360738BC" target="_blank" rel="noreferrer">0xC9332fdCB1C491Dcc683bAe86Fe3cb70360738BC</a></p>
+        <p><strong>crvUSD:</strong> <a href="https://etherscan.io/address/0xf939E0A03FB07F59A73314E73794Be0E57ac1b4E" target="_blank" rel="noreferrer">0xf939E0A03FB07F59A73314E73794Be0E57ac1b4E</a></p>
+      </div>
+
+      <noscript>
+        <p class="note">Enable JavaScript to load LayerZero Scan data.</p>
+      </noscript>
+    </main>
+
+    <script>
+      const LZ_API = "https://scan.layerzero-api.com/v1";
+      const LZ_SCAN = "https://layerzeroscan.com";
+      // RPC endpoints for different chains
+      const defaultRpcEndpoints = {
+        ethereum: "https://eth.llamarpc.com",
+        arbitrum: "https://arb1.arbitrum.io/rpc",
+        optimism: "https://mainnet.optimism.io",
+        fraxtal: "https://rpc.frax.com",
+      };
+      const rpcEndpoints = { ...defaultRpcEndpoints };
+      let ETH_RPC = rpcEndpoints.ethereum;
+      const CRVUSD = "0xf939E0A03FB07F59A73314E73794Be0E57ac1b4E";
+      const CONTROLLER_FACTORY = "0xC9332fdCB1C491Dcc683bAe86Fe3cb70360738BC";
+      const SELECTOR_BALANCE_OF = "0x70a08231";
+      const SELECTOR_DEBT_CEILING = "0xc92696b2";
+      const SELECTOR_ALLOWED_TO_BRIDGE = "0x5cc895f2";
+      const SELECTOR_LIMIT = "0xa4d66daf";
+      const INTERVAL = 151200;
+      const UINT64_MASK = (1n << 64n) - 1n;
+      const MULTICALL3 = "0xCA11bde05977b3631167028862bE2a173976CA11";
+      const SELECTOR_AGGREGATE3 = "82ad56cb";
+
+      const OP_WITHDRAWAL_TOPIC =
+        "0x73d170910aba9e6d50b102db522b1dbcd796216f5128b445aa2135272886497e";
+      const OP_ERC20_BRIDGE_TOPIC =
+        "0x7ff126db8024424bbfd9826e8ab82ff59136289ea440b04b39a0df1b03b9cabf";
+      const OP_MESSAGE_PASSED_TOPIC =
+        "0x02a52367d10742d8032712c1bb8e0144ff1ec5ffda1ed7d70bb05a2744955054";
+
+      const ARBSYS_ADDRESS = "0x0000000000000000000000000000000000000064";
+      const NODE_INTERFACE_ADDRESS = "0x00000000000000000000000000000000000000C8";
+      const ARB_L2_TO_L1_TX_TOPIC =
+        "0x3e7aafa77dbf186b7fd488006beff893744caa3c4f6f299e8a709fa2087374fc";
+      const ARB_SEND_MERKLE_UPDATE_TOPIC =
+        "0xe9e13da364699fb5b0496ff5a0fc70760ad5836e93ba96568a4e42b9914a8b95";
+
+      const SELECTOR_OUTBOX = "0xce11e6ab";
+      const SELECTOR_IS_SPENT = "0x5a129efe";
+      const SELECTOR_ROOTS = "0xae6dead7";
+      const SELECTOR_CONSTRUCT_OUTBOX_PROOF = "0x42696350";
+
+      const SELECTOR_FINALIZED_WITHDRAWALS = "0xa14238e7";
+      const SELECTOR_PROVEN_WITHDRAWALS_LEGACY = "0xe965084c";
+      const SELECTOR_PROVEN_WITHDRAWALS_FAULT = "0xbb2c727e";
+      const SELECTOR_NUM_PROOF_SUBMITTERS = "0x513747ab";
+      const SELECTOR_PROOF_SUBMITTER = "0x26d19fca";
+      const SELECTOR_PROOF_SUBMITTERS = "0xa3860f48";
+      const SELECTOR_PROOF_MATURITY_DELAY = "0xbf653a5c";
+      const SELECTOR_FINALIZATION_PERIOD = "0xce5db8d6";
+      const SELECTOR_LATEST_BLOCK_NUMBER = "0x4599c788";
+      const SELECTOR_GET_L2_OUTPUT = "0xa25ae557";
+      const SELECTOR_GAME_COUNT = "0x4d1975b4";
+
+      const NETWORKS = {
+        arbitrum: {
+          name: "Arbitrum",
+          eid: 30110,
+          l2Messenger: "0x14e11C1B8F04A7dE306a7B5bf21bbca0D5cF79ff",
+          fastBridgeL2: "0x1F2aF270029d028400265Ce1dd0919BA8780dAe1",
+          l1Vault: "0xadB10d2d5A95e58Ddb1A0744a0d2D7B55Db7843D",
+          l2Explorer: "https://arbiscan.io",
+          l1Explorer: "https://etherscan.io",
+          rpc: rpcEndpoints.arbitrum,
+          blockscout: "https://arbitrum.blockscout.com",
+          type: "arb",
+          rollupProxy: "0x4DCeB440657f21083db8aDd07665f8ddBe1DCfc0",
+          gateways: [
+            "0xa3A7B6F88361F48403514059F1F16C8E78d60EeC",
+            "0x72Ce9c846789fdB6fC1f34aC4AD25Dd9ef7031ef",
+          ],
+        },
+        optimism: {
+          name: "Optimism",
+          eid: 30111,
+          l2Messenger: "0x7a1f2f99B65f6c3B2413648c86C0326CfF8D8837",
+          fastBridgeL2: "0xD16d5eC345Dd86Fb63C6a9C43c517210F1027914",
+          l1Vault: "0x97d024859B68394122B3d0bb407dD7299cC8E937",
+          l2Explorer: "https://optimistic.etherscan.io",
+          l1Explorer: "https://etherscan.io",
+          rpc: rpcEndpoints.optimism,
+          blockscout: "https://optimism.blockscout.com",
+          type: "op",
+          l2StandardBridge: "0x4200000000000000000000000000000000000010",
+          l2MessagePasser: "0x4200000000000000000000000000000000000016",
+          portal: "0xbEb5Fc579115071764c7423A4f12eDde41f106Ed",
+          disputeGameFactory: "0xe5965Ab5962eDc7477C8520243A95517CD252fA9",
+          anchorStateRegistry: "0x23B2C62946350F4246f9f9D027e071f0264FD113",
+          useOutputOracle: false,
+          useErc20Bridge: false,
+        },
+        fraxtal: {
+          name: "Fraxtal",
+          eid: 30255,
+          l2Messenger: "0x672C38258729060bF443BA28FaEF4F2db154C6fC",
+          fastBridgeL2: "0x3fE593E651Cd0B383AD36b75F4159f30BB0631A6",
+          l1Vault: "0x5EF620631AA46e7d2F6f963B6bE4F6823521B9eC",
+          l2Explorer: "https://fraxscan.com",
+          l1Explorer: "https://etherscan.io",
+          rpc: rpcEndpoints.fraxtal,
+          blockscout: "https://fraxscan.com",
+          type: "op",
+          l2StandardBridge: "0x4200000000000000000000000000000000000010",
+          l2MessagePasser: "0x4200000000000000000000000000000000000016",
+          portal: "0x36cb65c1967A0Fb0EEE11569C51C2f2aA1Ca6f6D",
+          l2OutputOracle: "0x66CC916Ed5C6C2FA97014f7D1cD141528Ae171e4",
+          useOutputOracle: true,
+          useErc20Bridge: true,
+        },
+      };
+
+      const RPC_STORAGE_KEY = "fastbridge.rpc.settings";
+      const RPC_TEMPLATES = {
+        drpc: "https://lb.drpc.live/{{chain}}/{{key}}",
+        ankr: "https://rpc.ankr.com/{{chain}}/{{key}}",
+      };
+      const RPC_CHAIN_SLUGS = {
+        ethereum: { drpc: "eth", ankr: "eth" },
+        arbitrum: { drpc: "arbitrum", ankr: "arbitrum" },
+        optimism: { drpc: "optimism", ankr: "optimism" },
+        fraxtal: { drpc: "fraxtal", ankr: null },
+      };
+
+      const DECIMALS = 18n;
+      const debtCeilingCache = new Map();
+      const backendStatusCache = new Map();
+      const outboxCache = new Map();
+
+      const $ = (selector) => document.querySelector(selector);
+
+      function setField(net, field, value) {
+        const el = document.querySelector(`[data-net="${net}"][data-field="${field}"]`);
+        if (el) el.textContent = value;
+      }
+
+      function shortAddress(addr) {
+        if (!addr || addr.length < 10) return "-";
+        return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+      }
+
+      function formatAmount(value) {
+        if (value === null || value === undefined) return "-";
+        const raw = BigInt(value);
+        const sign = raw < 0n ? "-" : "";
+        const abs = raw < 0n ? -raw : raw;
+        const whole = abs / 10n ** DECIMALS;
+        const frac = abs % 10n ** DECIMALS;
+        const fracStr = frac.toString().padStart(18, "0").slice(0, 4);
+        return `${sign}${whole.toString()}.${fracStr}`;
+      }
+
+      function formatAmountGrouped(value) {
+        if (value === null || value === undefined) return "-";
+        const raw = BigInt(value);
+        const sign = raw < 0n ? "-" : "";
+        const abs = raw < 0n ? -raw : raw;
+        const whole = abs / 10n ** DECIMALS;
+        const frac = abs % 10n ** DECIMALS;
+        const wholeStr = whole
+          .toString()
+          .replace(/\B(?=(\d{3})+(?!\d))/g, "_");
+        const fracStr = frac.toString().padStart(18, "0").slice(0, 2);
+        return `${sign}${wholeStr}.${fracStr}`;
+      }
+
+      function normalizeTimestamp(value) {
+        if (value === null || value === undefined) return null;
+        const num = Number(value);
+        if (!Number.isFinite(num) || num <= 0) return null;
+        return num > 1e12 ? Math.floor(num / 1000) : Math.floor(num);
+      }
+
+      function formatDate(seconds) {
+        if (!seconds) return "-";
+        const date = new Date(seconds * 1000);
+        return date.toLocaleString(undefined, {
+          month: "short",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+      }
+
+      function applyRowAge(row, timestamp) {
+        if (!timestamp) return;
+        const now = Math.floor(Date.now() / 1000);
+        if (now - timestamp > 7 * 24 * 60 * 60) {
+          row.classList.add("stale");
+        }
+      }
+
+      function buildLzTooltip(message) {
+        const lines = [];
+        const sourceStatus = message?.source?.status || message?.status?.name;
+        if (sourceStatus) lines.push(`Source status: ${sourceStatus}`);
+
+        const nonce = message?.source?.nonce ?? message?.nonce;
+        if (nonce !== null && nonce !== undefined) lines.push(`Nonce: ${nonce}`);
+
+        const dvn = message?.verification?.dvn;
+        const formatDvnEntry = (item) => {
+          if (!item || typeof item !== "object") return null;
+          const name =
+            item.name ||
+            item.id ||
+            item.address ||
+            item.dvn ||
+            item.signer ||
+            item.validator ||
+            null;
+          const confirmed =
+            item.confirmed ?? item.isConfirmed ?? item.hasConfirmed ?? item.verified ?? null;
+          const status = item.status || item.state || item.result || null;
+          const label = name || "DVN";
+          let detail = null;
+          if (confirmed !== null && confirmed !== undefined) {
+            detail = confirmed ? "confirmed" : "not confirmed";
+          }
+          if (status) {
+            detail = detail ? `${detail}, ${status}` : status;
+          }
+          return detail ? `${label} - ${detail}` : label;
+        };
+        if (dvn) {
+          if (Array.isArray(dvn)) {
+            const dvnNames = dvn
+              .map((item) => item?.name || item?.id || item?.address)
+              .filter(Boolean);
+            if (dvnNames.length) lines.push(`DVNs: ${dvnNames.join(", ")}`);
+            const dvnStatuses = dvn.map((item) => item?.status).filter(Boolean);
+            if (dvnStatuses.length) lines.push(`DVN statuses: ${dvnStatuses.join(", ")}`);
+            const dvnEntries = dvn.map(formatDvnEntry).filter(Boolean);
+            if (dvnEntries.length) {
+              lines.push("DVN confirmations:");
+              dvnEntries.forEach((entry) => lines.push(`- ${entry}`));
+            }
+          } else if (typeof dvn === "object") {
+            if (dvn.status) lines.push(`DVN status: ${dvn.status}`);
+            if (dvn.confirmed !== undefined && dvn.required !== undefined) {
+              lines.push(`DVN confirmed: ${dvn.confirmed}/${dvn.required}`);
+            }
+            if (Array.isArray(dvn.confirmations)) {
+              const confirmations = dvn.confirmations.map(formatDvnEntry).filter(Boolean);
+              if (confirmations.length) {
+                lines.push("DVN confirmations:");
+                confirmations.forEach((entry) => lines.push(`- ${entry}`));
+              }
+            }
+          }
+        }
+
+        const sealerStatus = message?.verification?.sealer?.status;
+        if (sealerStatus) lines.push(`Sealer status: ${sealerStatus}`);
+
+        return lines.length ? lines.join("\n") : "LayerZero status details unavailable";
+      }
+
+      function hexToBigInt(hex) {
+        if (!hex || hex === "0x") return 0n;
+        return BigInt(hex);
+      }
+
+      function hexToNumber(hex) {
+        if (hex === null || hex === undefined) return 0;
+        if (typeof hex === "number") return hex;
+        if (!hex || hex === "0x") return 0;
+        return Number.parseInt(hex, 16);
+      }
+
+      function decodeTwoUint256(hex) {
+        if (!hex || hex === "0x") return [0n, 0n];
+        const data = hex.slice(2).padStart(128, "0");
+        const first = BigInt("0x" + data.slice(0, 64));
+        const second = BigInt("0x" + data.slice(64, 128));
+        return [first, second];
+      }
+
+      function pad32(hex) {
+        return hex.toLowerCase().replace("0x", "").padStart(64, "0");
+      }
+
+      function strip0x(hex) {
+        return hex.startsWith("0x") ? hex.slice(2) : hex;
+      }
+
+      function encodeBool(value) {
+        return pad32(value ? "0x1" : "0x0");
+      }
+
+      function encodeBytes(dataHex) {
+        const data = strip0x(dataHex || "0x");
+        const len = data.length / 2;
+        const lenHex = pad32("0x" + len.toString(16));
+        const paddedLength = Math.ceil(data.length / 64) * 64;
+        const padded = data.padEnd(paddedLength, "0");
+        return lenHex + padded;
+      }
+
+      function encodeAggregate3Calls(calls) {
+        const elements = calls.map((call) => {
+          const target = pad32(call.to);
+          const allowFailure = encodeBool(true);
+          const offset = pad32("0x60");
+          const bytesTail = encodeBytes(call.data || "0x");
+          return target + allowFailure + offset + bytesTail;
+        });
+
+        const headSize = 32 + 32 * calls.length;
+        let cursor = headSize;
+        const offsets = elements.map((element) => {
+          const offset = cursor;
+          cursor += element.length / 2;
+          return pad32("0x" + offset.toString(16));
+        });
+
+        const length = pad32("0x" + calls.length.toString(16));
+        const arrayHex = length + offsets.join("") + elements.join("");
+        const offsetToArray = pad32("0x20");
+        return "0x" + SELECTOR_AGGREGATE3 + offsetToArray + arrayHex;
+      }
+
+      function decodeAggregate3Results(dataHex) {
+        const data = strip0x(dataHex || "0x");
+        if (!data) return [];
+        const offset = Number.parseInt(data.slice(0, 64), 16);
+        const arrayStart = offset * 2;
+        const length = Number.parseInt(data.slice(arrayStart, arrayStart + 64), 16);
+        const results = [];
+        for (let i = 0; i < length; i += 1) {
+          const off = Number.parseInt(
+            data.slice(arrayStart + 64 + i * 64, arrayStart + 64 + (i + 1) * 64),
+            16
+          );
+          const elementStart = arrayStart + off * 2;
+          const success = Number.parseInt(data.slice(elementStart, elementStart + 64), 16) !== 0;
+          const bytesOffset = Number.parseInt(
+            data.slice(elementStart + 64, elementStart + 128),
+            16
+          );
+          const bytesStart = elementStart + bytesOffset * 2;
+          const bytesLength = Number.parseInt(data.slice(bytesStart, bytesStart + 64), 16);
+          const bytesData = data.slice(bytesStart + 64, bytesStart + 64 + bytesLength * 2);
+          results.push({ success, returnData: "0x" + bytesData });
+        }
+        return results;
+      }
+
+      function decodePayload(payloadHex) {
+        if (!payloadHex || !payloadHex.startsWith("0x")) return null;
+        const data = payloadHex.slice(2);
+        if (data.length < 128) {
+          return null;
+        }
+        const slice = data.slice(0, 128);
+        const word1 = slice.slice(0, 64);
+        const word2 = slice.slice(64, 128);
+        const to = "0x" + word1.slice(24);
+        const amount = BigInt("0x" + word2);
+        return { to, amount };
+      }
+
+      function statusTag(status, className) {
+        const span = document.createElement("span");
+        span.className = `tag ${className}`;
+        span.textContent = status;
+        return span;
+      }
+
+      function deriveUserStatus(message) {
+        const destTx = message?.destination?.tx?.txHash || message?.destination?.tx;
+        return destTx ? "Minted" : "Initiated";
+      }
+
+      function normalizeHex(value) {
+        if (!value) return "";
+        return value.toLowerCase();
+      }
+
+      function addrEquals(a, b) {
+        return normalizeHex(a) === normalizeHex(b);
+      }
+
+      function getWord(dataHex, index) {
+        const data = dataHex.startsWith("0x") ? dataHex.slice(2) : dataHex;
+        const start = index * 64;
+        const word = data.slice(start, start + 64);
+        return word.padEnd(64, "0");
+      }
+
+      function wordToAddress(word) {
+        return "0x" + word.slice(24);
+      }
+
+      function wordToBytes32(word) {
+        return "0x" + word;
+      }
+
+      function topicToAddress(topic) {
+        if (!topic) return "";
+        return "0x" + topic.slice(-40);
+      }
+
+      function topicToBigInt(topic) {
+        if (!topic) return 0n;
+        return BigInt(topic);
+      }
+
+      function getL2TxHash(message) {
+        return (
+          message?.source?.tx?.txHash ||
+          message?.source?.txHash ||
+          message?.source?.tx?.hash ||
+          message?.source?.hash ||
+          null
+        );
+      }
+
+      function backendStatusClass(status) {
+        switch (status) {
+          case "Finalized":
+            return "status-finalized";
+          case "Waiting for finalization":
+            return "status-waiting";
+          case "Proof submitted":
+            return "status-proof";
+          case "Ready to prove":
+            return "status-ready";
+          case "Loading":
+            return "status-initiated";
+          default:
+            return "status-initiated";
+        }
+      }
+
+      function createLimiter(limit) {
+        let active = 0;
+        const queue = [];
+
+        const runNext = () => {
+          if (active >= limit || queue.length === 0) return;
+          const { task, resolve, reject } = queue.shift();
+          active += 1;
+          task()
+            .then(resolve, reject)
+            .finally(() => {
+              active -= 1;
+              runNext();
+            });
+        };
+
+        return (task) =>
+          new Promise((resolve, reject) => {
+            queue.push({ task, resolve, reject });
+            runNext();
+          });
+      }
+
+      const backendLimiter = createLimiter(6);
+
+      function getDefaultRpcSettings() {
+        return {
+          provider: "default",
+          drpcKey: "",
+          ankrKey: "",
+          custom: {
+            ethereum: "",
+            arbitrum: "",
+            optimism: "",
+            fraxtal: "",
+          },
+        };
+      }
+
+      function loadRpcSettings() {
+        try {
+          const raw = localStorage.getItem(RPC_STORAGE_KEY);
+          if (!raw) return getDefaultRpcSettings();
+          const parsed = JSON.parse(raw);
+          return {
+            ...getDefaultRpcSettings(),
+            ...parsed,
+            custom: {
+              ...getDefaultRpcSettings().custom,
+              ...(parsed.custom || {}),
+            },
+          };
+        } catch (err) {
+          return getDefaultRpcSettings();
+        }
+      }
+
+      function saveRpcSettings(settings) {
+        localStorage.setItem(RPC_STORAGE_KEY, JSON.stringify(settings));
+      }
+
+      function buildProviderUrl(provider, chainKey, key) {
+        if (!provider || !key) return null;
+        const slug = RPC_CHAIN_SLUGS[chainKey]?.[provider];
+        if (!slug) return null;
+        const template = RPC_TEMPLATES[provider];
+        if (!template) return null;
+        return template.replace("{{chain}}", slug).replace("{{key}}", key);
+      }
+
+      function applyRpcSettings(settings, { refresh = true } = {}) {
+        const endpoints = { ...defaultRpcEndpoints };
+        const provider = settings.provider || "default";
+        const drpcKey = (settings.drpcKey || "").trim();
+        const ankrKey = (settings.ankrKey || "").trim();
+
+        if (provider === "drpc") {
+          Object.keys(endpoints).forEach((chainKey) => {
+            const url = buildProviderUrl("drpc", chainKey, drpcKey);
+            if (url) endpoints[chainKey] = url;
+          });
+        }
+
+        if (provider === "ankr") {
+          Object.keys(endpoints).forEach((chainKey) => {
+            const url = buildProviderUrl("ankr", chainKey, ankrKey);
+            if (url) endpoints[chainKey] = url;
+          });
+        }
+
+        Object.keys(endpoints).forEach((chainKey) => {
+          const custom = settings.custom?.[chainKey];
+          if (custom && custom.trim()) {
+            endpoints[chainKey] = custom.trim();
+          }
+        });
+
+        Object.assign(rpcEndpoints, endpoints);
+        ETH_RPC = rpcEndpoints.ethereum;
+        Object.keys(NETWORKS).forEach((chainKey) => {
+          NETWORKS[chainKey].rpc = rpcEndpoints[chainKey];
+        });
+
+        backendStatusCache.clear();
+        debtCeilingCache.clear();
+        outboxCache.clear();
+        multicallDisabled.clear();
+
+        const statusEl = document.getElementById("rpc-status");
+        if (statusEl) {
+          let status = "Using default RPCs";
+          if (provider === "drpc") {
+            status = drpcKey ? "Using DRPC" : "DRPC selected (missing key, using defaults)";
+          } else if (provider === "ankr") {
+            status = ankrKey ? "Using Ankr" : "Ankr selected (missing key, using defaults)";
+          } else if (provider === "custom") {
+            status = "Using custom RPCs";
+          }
+          statusEl.textContent = status;
+        }
+
+        if (refresh) {
+          Object.keys(NETWORKS).forEach((chainKey) => {
+            loadNetwork(chainKey);
+          });
+        }
+      }
+
+      function clearBackendCache(netKey) {
+        const prefix = `${netKey}:`;
+        Array.from(backendStatusCache.keys()).forEach((key) => {
+          if (key.startsWith(prefix)) backendStatusCache.delete(key);
+        });
+      }
+
+      function syncRpcForm(settings) {
+        const providerEl = document.getElementById("rpc-provider");
+        const drpcEl = document.getElementById("rpc-drpc-key");
+        const ankrEl = document.getElementById("rpc-ankr-key");
+        const customEth = document.getElementById("rpc-custom-ethereum");
+        const customArb = document.getElementById("rpc-custom-arbitrum");
+        const customOp = document.getElementById("rpc-custom-optimism");
+        const customFrax = document.getElementById("rpc-custom-fraxtal");
+
+        if (providerEl) providerEl.value = settings.provider || "default";
+        if (drpcEl) drpcEl.value = settings.drpcKey || "";
+        if (ankrEl) ankrEl.value = settings.ankrKey || "";
+        if (customEth) customEth.value = settings.custom?.ethereum || "";
+        if (customArb) customArb.value = settings.custom?.arbitrum || "";
+        if (customOp) customOp.value = settings.custom?.optimism || "";
+        if (customFrax) customFrax.value = settings.custom?.fraxtal || "";
+      }
+
+      function readRpcForm() {
+        const providerEl = document.getElementById("rpc-provider");
+        const drpcEl = document.getElementById("rpc-drpc-key");
+        const ankrEl = document.getElementById("rpc-ankr-key");
+        const customEth = document.getElementById("rpc-custom-ethereum");
+        const customArb = document.getElementById("rpc-custom-arbitrum");
+        const customOp = document.getElementById("rpc-custom-optimism");
+        const customFrax = document.getElementById("rpc-custom-fraxtal");
+
+        return {
+          provider: providerEl ? providerEl.value : "default",
+          drpcKey: drpcEl ? drpcEl.value.trim() : "",
+          ankrKey: ankrEl ? ankrEl.value.trim() : "",
+          custom: {
+            ethereum: customEth ? customEth.value.trim() : "",
+            arbitrum: customArb ? customArb.value.trim() : "",
+            optimism: customOp ? customOp.value.trim() : "",
+            fraxtal: customFrax ? customFrax.value.trim() : "",
+          },
+        };
+      }
+
+      async function rpcCall(rpc, method, params) {
+        const res = await fetch(rpc, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            jsonrpc: "2.0",
+            id: 1,
+            method,
+            params,
+          }),
+        });
+        const json = await res.json();
+        if (json.error) throw new Error(json.error.message || "RPC error");
+        return json.result;
+      }
+
+      async function rpcBatchCall(rpc, calls) {
+        if (!calls.length) return [];
+        const payload = calls.map((call, index) => ({
+          jsonrpc: "2.0",
+          id: index + 1,
+          method: call.method,
+          params: call.params,
+        }));
+        const res = await fetch(rpc, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const json = await res.json();
+        if (!Array.isArray(json)) {
+          throw new Error("Batch RPC not supported");
+        }
+        const byId = new Map();
+        json.forEach((item) => {
+          byId.set(item.id, item);
+        });
+        return payload.map((req) => {
+          const item = byId.get(req.id);
+          if (!item) throw new Error("Missing batch response");
+          if (item.error) throw new Error(item.error.message || "Batch RPC error");
+          return item.result;
+        });
+      }
+
+      async function rpcBatchCallLoose(rpc, calls) {
+        if (!calls.length) return [];
+        const payload = calls.map((call, index) => ({
+          jsonrpc: "2.0",
+          id: index + 1,
+          method: call.method,
+          params: call.params,
+        }));
+        const res = await fetch(rpc, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const json = await res.json();
+        if (!Array.isArray(json)) {
+          throw new Error("Batch RPC not supported");
+        }
+        const byId = new Map();
+        json.forEach((item) => {
+          byId.set(item.id, item);
+        });
+        return payload.map((req) => {
+          const item = byId.get(req.id);
+          if (!item || item.error) return null;
+          return item.result;
+        });
+      }
+
+      async function ethCall(rpc, to, data) {
+        return rpcCall(rpc, "eth_call", [{ to, data }, "latest"]);
+      }
+
+      const multicallDisabled = new Set();
+
+      async function ethCallBatch(rpc, calls, options = {}) {
+        const allowFailure = !!options.allowFailure;
+        const fallback = async () => {
+          if (allowFailure) {
+            try {
+              const results = await rpcBatchCallLoose(
+                rpc,
+                calls.map((call) => ({
+                  method: "eth_call",
+                  params: [{ to: call.to, data: call.data }, "latest"],
+                }))
+              );
+              if (results.some((item) => item === null)) {
+                return await Promise.all(
+                  calls.map(async (call, index) => {
+                    if (results[index] !== null) return results[index];
+                    try {
+                      return await ethCall(rpc, call.to, call.data);
+                    } catch (err) {
+                      return null;
+                    }
+                  })
+                );
+              }
+              return results;
+            } catch (batchError) {
+              return Promise.all(
+                calls.map(async (call) => {
+                  try {
+                    return await ethCall(rpc, call.to, call.data);
+                  } catch (err) {
+                    return null;
+                  }
+                })
+              );
+            }
+          }
+
+          try {
+            return await rpcBatchCall(
+              rpc,
+              calls.map((call) => ({
+                method: "eth_call",
+                params: [{ to: call.to, data: call.data }, "latest"],
+              }))
+            );
+          } catch (batchError) {
+            return Promise.all(calls.map((call) => ethCall(rpc, call.to, call.data)));
+          }
+        };
+
+        try {
+          if (multicallDisabled.has(rpc)) {
+            return await fallback();
+          }
+          const multicallData = encodeAggregate3Calls(calls);
+          const multicallResult = await rpcCall(rpc, "eth_call", [
+            { to: MULTICALL3, data: multicallData },
+            "latest",
+          ]);
+          const decoded = decodeAggregate3Results(multicallResult);
+          if (decoded.length !== calls.length) {
+            throw new Error("Multicall length mismatch");
+          }
+          if (!allowFailure && decoded.some((item) => !item.success)) {
+            throw new Error("Multicall item failed");
+          }
+          return decoded.map((item) => (item.success ? item.returnData : null));
+        } catch (error) {
+          multicallDisabled.add(rpc);
+          return fallback();
+        }
+      }
+
+      const receiptBatchers = new Map();
+      const RECEIPT_BATCH_SIZE = 20;
+
+      function queueReceipt(rpc, txHash) {
+        if (!receiptBatchers.has(rpc)) {
+          receiptBatchers.set(rpc, { pending: new Map(), timer: null });
+        }
+        const batcher = receiptBatchers.get(rpc);
+        if (!batcher.pending.has(txHash)) {
+          batcher.pending.set(txHash, []);
+        }
+        return new Promise((resolve, reject) => {
+          batcher.pending.get(txHash).push({ resolve, reject });
+          if (!batcher.timer) {
+            batcher.timer = setTimeout(() => flushReceiptBatch(rpc), 0);
+          }
+        });
+      }
+
+      async function flushReceiptBatch(rpc) {
+        const batcher = receiptBatchers.get(rpc);
+        if (!batcher) return;
+        batcher.timer = null;
+        const entries = Array.from(batcher.pending.entries());
+        batcher.pending.clear();
+
+        for (let i = 0; i < entries.length; i += RECEIPT_BATCH_SIZE) {
+          const slice = entries.slice(i, i + RECEIPT_BATCH_SIZE);
+          const txHashes = slice.map(([hash]) => hash);
+          const calls = txHashes.map((hash) => ({
+            method: "eth_getTransactionReceipt",
+            params: [hash],
+          }));
+          try {
+            const results = await rpcBatchCall(rpc, calls);
+            results.forEach((result, index) => {
+              slice[index][1].forEach(({ resolve }) => resolve(result));
+            });
+          } catch (error) {
+            try {
+              const results = await Promise.all(
+                txHashes.map((hash) => rpcCall(rpc, "eth_getTransactionReceipt", [hash]))
+              );
+              results.forEach((result, index) => {
+                slice[index][1].forEach(({ resolve }) => resolve(result));
+              });
+            } catch (fallbackError) {
+              slice.forEach(([, waiters]) => {
+                waiters.forEach(({ reject }) => reject(fallbackError));
+              });
+            }
+          }
+        }
+      }
+
+      async function fetchBlockTimestamp(rpc) {
+        const block = await rpcCall(rpc, "eth_getBlockByNumber", ["latest", false]);
+        return hexToNumber(block.timestamp);
+      }
+
+      async function fetchBlockTimestampAt(rpc, blockNumber) {
+        if (blockNumber === null || blockNumber === undefined) return null;
+        const blockTag =
+          typeof blockNumber === "number" ? "0x" + blockNumber.toString(16) : blockNumber;
+        const block = await rpcCall(rpc, "eth_getBlockByNumber", [blockTag, false]);
+        if (!block) return null;
+        return hexToNumber(block.timestamp);
+      }
+
+      async function fetchVaultBalance(vault) {
+        const data = SELECTOR_BALANCE_OF + pad32(vault);
+        const result = await ethCall(ETH_RPC, CRVUSD, data);
+        return hexToBigInt(result);
+      }
+
+      async function fetchDebtCeiling(vault) {
+        const key = vault.toLowerCase();
+        if (debtCeilingCache.has(key)) return debtCeilingCache.get(key);
+        const data = SELECTOR_DEBT_CEILING + pad32(vault);
+        const result = await ethCall(ETH_RPC, CONTROLLER_FACTORY, data);
+        const value = hexToBigInt(result);
+        debtCeilingCache.set(key, value);
+        return value;
+      }
+
+      async function fetchCooldown(net) {
+        const [timestamp, limitHex] = await Promise.all([
+          fetchBlockTimestamp(net.rpc),
+          ethCall(net.rpc, net.fastBridgeL2, SELECTOR_LIMIT),
+        ]);
+        const data = SELECTOR_ALLOWED_TO_BRIDGE + pad32("0x" + timestamp.toString(16));
+        const allowedHex = await ethCall(net.rpc, net.fastBridgeL2, data);
+        const [, available] = decodeTwoUint256(allowedHex);
+        const limit = hexToBigInt(limitHex);
+        const nextEpoch = timestamp - (timestamp % INTERVAL) + INTERVAL;
+        return { available, limit, timestamp, nextEpoch };
+      }
+
+      async function fetchMessages(net) {
+        const url = `${LZ_API}/messages/oapp/${net.eid}/${net.l2Messenger}?limit=100`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`LayerZero API error: ${res.status}`);
+        const json = await res.json();
+        return json.data || [];
+      }
+
+      function encodeUint(value) {
+        return pad32("0x" + BigInt(value).toString(16));
+      }
+
+      function encodeAddress(value) {
+        return pad32(value);
+      }
+
+      async function fetchReceipt(rpc, txHash) {
+        return queueReceipt(rpc, txHash);
+      }
+
+      function decodeTwoWords(hex) {
+        const data = strip0x(hex || "0x");
+        const padded = data.padStart(128, "0");
+        const a = BigInt("0x" + padded.slice(0, 64));
+        const b = BigInt("0x" + padded.slice(64, 128));
+        return [a, b];
+      }
+
+      function decodeThreeWords(hex) {
+        const data = strip0x(hex || "0x");
+        const padded = data.padStart(192, "0");
+        const a = "0x" + padded.slice(0, 64);
+        const b = BigInt("0x" + padded.slice(64, 128));
+        const c = BigInt("0x" + padded.slice(128, 192));
+        return [a, b, c];
+      }
+
+      async function callProofSubmitter(portal, hash, index) {
+        const suffix = pad32(hash) + encodeUint(index);
+        const [directResult, indexedResult] = await ethCallBatch(
+          ETH_RPC,
+          [
+            { to: portal, data: SELECTOR_PROOF_SUBMITTER + suffix },
+            { to: portal, data: SELECTOR_PROOF_SUBMITTERS + suffix },
+          ],
+          { allowFailure: true }
+        );
+        const pick = (data) => {
+          if (!data || data === "0x") return null;
+          return "0x" + data.slice(-40);
+        };
+        const direct = pick(directResult);
+        if (direct) return direct;
+        const indexed = pick(indexedResult);
+        if (indexed) return indexed;
+        throw new Error("Proof submitter lookup failed");
+      }
+
+      async function fetchOutboxAddress(net) {
+        const key = net.rollupProxy.toLowerCase();
+        if (outboxCache.has(key)) return outboxCache.get(key);
+        const [outboxAddrData] = await ethCallBatch(ETH_RPC, [
+          { to: net.rollupProxy, data: SELECTOR_OUTBOX },
+        ]);
+        if (!outboxAddrData || outboxAddrData === "0x") {
+          throw new Error("Outbox lookup failed");
+        }
+        const outboxAddr = "0x" + outboxAddrData.slice(-40);
+        outboxCache.set(key, outboxAddr);
+        return outboxAddr;
+      }
+
+      async function getOpBackendData(net, txHash, timestampHint) {
+        const receipt = await fetchReceipt(net.rpc, txHash);
+        if (!receipt) return { status: "Initiated", timestamp: timestampHint };
+        const timestamp =
+          timestampHint ?? (await fetchBlockTimestampAt(net.rpc, receipt.blockNumber));
+
+        const bridgeTopic = net.useErc20Bridge ? OP_ERC20_BRIDGE_TOPIC : OP_WITHDRAWAL_TOPIC;
+        const bridgeLog = receipt.logs.find(
+          (log) => addrEquals(log.address, net.l2StandardBridge) && normalizeHex(log.topics?.[0]) === bridgeTopic
+        );
+        if (!bridgeLog) return { status: "Initiated", timestamp };
+
+        const bridgeIndex = hexToNumber(bridgeLog.logIndex);
+        const mpLog = receipt.logs.find((log) => {
+          if (!addrEquals(log.address, net.l2MessagePasser)) return false;
+          if (normalizeHex(log.topics?.[0]) !== OP_MESSAGE_PASSED_TOPIC) return false;
+          return hexToNumber(log.logIndex) > bridgeIndex;
+        });
+        if (!mpLog) return { status: "Initiated", timestamp };
+
+        const withdrawalHash = wordToBytes32(getWord(mpLog.data, 3));
+        const l2BlockNumber = BigInt(hexToNumber(receipt.blockNumber));
+
+        if (net.useOutputOracle) {
+          const [finalizedHex, provenHex, latestHex] = await ethCallBatch(ETH_RPC, [
+            { to: net.portal, data: SELECTOR_FINALIZED_WITHDRAWALS + pad32(withdrawalHash) },
+            { to: net.portal, data: SELECTOR_PROVEN_WITHDRAWALS_LEGACY + pad32(withdrawalHash) },
+            { to: net.l2OutputOracle, data: SELECTOR_LATEST_BLOCK_NUMBER },
+          ]);
+          if (hexToBigInt(finalizedHex) !== 0n) {
+            return { status: "Finalized", timestamp };
+          }
+
+          const [outputRoot, provenTimestamp, outputIndex] = decodeThreeWords(provenHex);
+          const proven = { outputRoot, timestamp: provenTimestamp, outputIndex };
+          if (proven.timestamp === 0n) {
+            const latest = hexToBigInt(latestHex);
+            return {
+              status: latest < l2BlockNumber ? "Initiated" : "Ready to prove",
+              timestamp,
+            };
+          }
+
+          const [outputHex, finalizationHex] = await ethCallBatch(ETH_RPC, [
+            {
+              to: net.l2OutputOracle,
+              data: SELECTOR_GET_L2_OUTPUT + encodeUint(proven.outputIndex),
+            },
+            { to: net.l2OutputOracle, data: SELECTOR_FINALIZATION_PERIOD },
+          ]);
+          const output = decodeThreeWords(outputHex);
+          if (normalizeHex(output[0]) !== normalizeHex(proven.outputRoot)) {
+            return { status: "Ready to prove", timestamp };
+          }
+
+          const finalizationPeriod = hexToBigInt(finalizationHex);
+          const now = BigInt(Math.floor(Date.now() / 1000));
+          const outputReady = now >= output[1] + finalizationPeriod;
+          const proofReady = now >= proven.timestamp + finalizationPeriod;
+          return {
+            status: outputReady && proofReady ? "Waiting for finalization" : "Proof submitted",
+            timestamp,
+          };
+        }
+
+        const faultCalls = [
+          { to: net.portal, data: SELECTOR_FINALIZED_WITHDRAWALS + pad32(withdrawalHash) },
+          { to: net.portal, data: SELECTOR_NUM_PROOF_SUBMITTERS + pad32(withdrawalHash) },
+        ];
+        if (net.disputeGameFactory) {
+          faultCalls.push({ to: net.disputeGameFactory, data: SELECTOR_GAME_COUNT });
+        }
+        const faultResults = await ethCallBatch(ETH_RPC, faultCalls);
+        const finalizedHex = faultResults[0];
+        const numSubmittersHex = faultResults[1];
+        const gameCountHex = net.disputeGameFactory ? faultResults[2] : "0x0";
+        if (hexToBigInt(finalizedHex) !== 0n) {
+          return { status: "Finalized", timestamp };
+        }
+
+        const numSubmitters = hexToBigInt(numSubmittersHex);
+        if (numSubmitters === 0n) {
+          const gameCount = hexToBigInt(gameCountHex);
+          return { status: gameCount > 0n ? "Ready to prove" : "Initiated", timestamp };
+        }
+
+        const submitter = await callProofSubmitter(net.portal, withdrawalHash, numSubmitters - 1n);
+        const [provenHex, delayHex] = await ethCallBatch(ETH_RPC, [
+          {
+            to: net.portal,
+            data: SELECTOR_PROVEN_WITHDRAWALS_FAULT + pad32(withdrawalHash) + encodeAddress(submitter),
+          },
+          { to: net.portal, data: SELECTOR_PROOF_MATURITY_DELAY },
+        ]);
+        const [, provenTimestamp] = decodeTwoWords(provenHex);
+        if (provenTimestamp === 0n) {
+          return { status: "Ready to prove", timestamp };
+        }
+
+        const delay = hexToBigInt(delayHex);
+        const now = BigInt(Math.floor(Date.now() / 1000));
+        return {
+          status: now >= provenTimestamp + delay ? "Waiting for finalization" : "Proof submitted",
+          timestamp,
+        };
+      }
+
+      async function getArbitrumBackendData(net, txHash, timestampHint) {
+        const receipt = await fetchReceipt(net.rpc, txHash);
+        if (!receipt) return { status: "Initiated", timestamp: timestampHint };
+        const timestamp =
+          timestampHint ?? (await fetchBlockTimestampAt(net.rpc, receipt.blockNumber));
+
+        const gateways = new Set(net.gateways.map((g) => g.toLowerCase()));
+        const l2txLogs = receipt.logs.filter(
+          (log) => addrEquals(log.address, ARBSYS_ADDRESS) && normalizeHex(log.topics?.[0]) === ARB_L2_TO_L1_TX_TOPIC
+        );
+        if (!l2txLogs.length) return { status: "Initiated", timestamp };
+
+        const chosen = l2txLogs.find((log) => gateways.has(topicToAddress(log.topics?.[1]).toLowerCase())) ||
+          l2txLogs[0];
+        const position = topicToBigInt(chosen.topics?.[3]);
+        const leaf64 = position & UINT64_MASK;
+
+        const outboxAddr = await fetchOutboxAddress(net);
+
+        const [spentData] = await ethCallBatch(ETH_RPC, [
+          { to: outboxAddr, data: SELECTOR_IS_SPENT + encodeUint(leaf64) },
+        ]);
+        if (hexToBigInt(spentData) !== 0n) return { status: "Finalized", timestamp };
+
+        const smuLog = receipt.logs.find(
+          (log) => addrEquals(log.address, ARBSYS_ADDRESS) && normalizeHex(log.topics?.[0]) === ARB_SEND_MERKLE_UPDATE_TOPIC
+        );
+        if (!smuLog) return { status: "Initiated", timestamp };
+
+        const sizeRaw = topicToBigInt(smuLog.topics?.[3]);
+        const size64 = sizeRaw & UINT64_MASK;
+        if (size64 < leaf64) return { status: "Initiated", timestamp };
+
+        const [proofData] = await ethCallBatch(net.rpc, [
+          {
+            to: NODE_INTERFACE_ADDRESS,
+            data: SELECTOR_CONSTRUCT_OUTBOX_PROOF + encodeUint(size64) + encodeUint(leaf64),
+          },
+        ]);
+        if (!proofData || proofData === "0x") return { status: "Initiated", timestamp };
+        const proofDataHex = proofData.startsWith("0x") ? proofData.slice(2) : proofData;
+        const root = "0x" + proofDataHex.slice(64, 128);
+
+        const [rootData] = await ethCallBatch(ETH_RPC, [
+          { to: outboxAddr, data: SELECTOR_ROOTS + pad32(root) },
+        ]);
+        if (hexToBigInt(rootData) === 0n) return { status: "Initiated", timestamp };
+        return { status: "Waiting for finalization", timestamp };
+      }
+
+      async function fetchBackendData(netKey, net, txHash, timestampHint) {
+        const cacheKey = `${netKey}:${txHash}`;
+        if (backendStatusCache.has(cacheKey)) return backendStatusCache.get(cacheKey);
+        const task = (async () => {
+          if (net.type === "arb") {
+            return getArbitrumBackendData(net, txHash, timestampHint);
+          }
+          return getOpBackendData(net, txHash, timestampHint);
+        })();
+        backendStatusCache.set(cacheKey, task);
+        return task;
+      }
+
+      function renderTable(netKey, messages, net, totals) {
+        const tbody = document.querySelector(`[data-net="${netKey}"][data-field="table"]`);
+        tbody.innerHTML = "";
+
+        if (!messages.length) {
+          const row = document.createElement("tr");
+          row.innerHTML = "<td colspan=\"6\">No messages found.</td>";
+          tbody.appendChild(row);
+          return;
+        }
+
+        messages.forEach((message) => {
+          const payload = decodePayload(message?.payload || message?.source?.tx?.payload || "");
+          const sender = message?.source?.tx?.from || message?.source?.from || "-";
+          const receiver = payload?.to || message?.pathway?.receiver?.address || "-";
+          const amount = payload?.amount ?? null;
+          const txHash = getL2TxHash(message);
+
+          const userStatus = deriveUserStatus(message);
+
+          const row = document.createElement("tr");
+
+          const senderCell = document.createElement("td");
+          if (sender !== "-") {
+            const link = document.createElement("a");
+            link.href = `${net.l2Explorer}/address/${sender}`;
+            link.target = "_blank";
+            link.rel = "noreferrer";
+            link.textContent = shortAddress(sender);
+            link.setAttribute("data-address", normalizeHex(sender));
+            senderCell.appendChild(link);
+          } else {
+            senderCell.textContent = "-";
+          }
+
+          const receiverCell = document.createElement("td");
+          if (receiver !== "-") {
+            const link = document.createElement("a");
+            link.href = `${net.l1Explorer}/address/${receiver}`;
+            link.target = "_blank";
+            link.rel = "noreferrer";
+            link.textContent = shortAddress(receiver);
+            link.setAttribute("data-address", normalizeHex(receiver));
+            receiverCell.appendChild(link);
+          } else {
+            receiverCell.textContent = "-";
+          }
+
+          const amountCell = document.createElement("td");
+          amountCell.textContent = amount !== null ? formatAmount(amount) : "-";
+
+          const dateCell = document.createElement("td");
+          const messageTimestamp = normalizeTimestamp(
+            message?.source?.tx?.timestamp || message?.source?.timestamp || message?.source?.tx?.blockTimestamp
+          );
+          let dateFilled = false;
+          if (messageTimestamp) {
+            dateCell.textContent = formatDate(messageTimestamp);
+            dateFilled = true;
+            applyRowAge(row, messageTimestamp);
+          } else {
+            dateCell.textContent = "Loading...";
+          }
+
+          const userCell = document.createElement("td");
+          const userTooltip = buildLzTooltip(message);
+          const userTag = statusTag(
+            userStatus,
+            userStatus === "Minted" ? "status-minted" : "status-initiated"
+          );
+          if (txHash) {
+            const link = document.createElement("a");
+            link.href = `${LZ_SCAN}/tx/${txHash}`;
+            link.target = "_blank";
+            link.rel = "noreferrer";
+            link.title = userTooltip;
+            link.appendChild(userTag);
+            userCell.appendChild(link);
+          } else {
+            userTag.title = userTooltip;
+            userCell.appendChild(userTag);
+          }
+
+          const backendCell = document.createElement("td");
+          const backendTag = statusTag("Loading", backendStatusClass("Loading"));
+          backendCell.appendChild(backendTag);
+
+          row.appendChild(dateCell);
+          row.appendChild(senderCell);
+          row.appendChild(receiverCell);
+          row.appendChild(amountCell);
+          row.appendChild(userCell);
+          row.appendChild(backendCell);
+          tbody.appendChild(row);
+
+          let counted = false;
+          if (!txHash) {
+            backendCell.innerHTML = "";
+            backendCell.appendChild(statusTag("Failed to load", backendStatusClass("Initiated")));
+            totals.hasError = true;
+            updateBackendTotalsUI(netKey, totals);
+            if (!dateFilled) {
+              dateCell.textContent = "-";
+              dateFilled = true;
+            }
+            return;
+          }
+
+          backendLimiter(() => fetchBackendData(netKey, net, txHash, messageTimestamp))
+            .then(({ status, timestamp }) => {
+              backendCell.innerHTML = "";
+              const tag = statusTag(status, backendStatusClass(status));
+              if (net.blockscout) {
+                const link = document.createElement("a");
+                link.href = `${net.blockscout}/tx/${txHash}`;
+                link.target = "_blank";
+                link.rel = "noreferrer";
+                link.appendChild(tag);
+                backendCell.appendChild(link);
+              } else {
+                backendCell.appendChild(tag);
+              }
+              if (amount !== null && !counted) {
+                applyBackendTotals(totals, amount, status);
+                updateBackendTotalsUI(netKey, totals);
+                counted = true;
+              }
+              if (!dateFilled) {
+                dateCell.textContent = timestamp ? formatDate(timestamp) : "-";
+                dateFilled = true;
+                if (timestamp) {
+                  applyRowAge(row, timestamp);
+                }
+              }
+            })
+            .catch((error) => {
+              console.error(error);
+              backendCell.innerHTML = "";
+              const tag = statusTag("Failed to load", backendStatusClass("Initiated"));
+              if (net.blockscout) {
+                const link = document.createElement("a");
+                link.href = `${net.blockscout}/tx/${txHash}`;
+                link.target = "_blank";
+                link.rel = "noreferrer";
+                link.appendChild(tag);
+                backendCell.appendChild(link);
+              } else {
+                backendCell.appendChild(tag);
+              }
+              totals.hasError = true;
+              updateBackendTotalsUI(netKey, totals);
+              if (!dateFilled) {
+                dateCell.textContent = "-";
+                dateFilled = true;
+              }
+            });
+        });
+      }
+
+      function updateSummary(netKey, vaultBalance, debtCeiling) {
+        setField(
+          netKey,
+          "vault",
+          `${formatAmountGrouped(vaultBalance)} / ${formatAmountGrouped(debtCeiling)}`
+        );
+      }
+
+      function initBackendTotals() {
+        return {
+          notFinalized: 0n,
+          readyToProve: 0n,
+          waitingFinal: 0n,
+          hasError: false,
+        };
+      }
+
+      function applyBackendTotals(totals, amount, status) {
+        if (amount === null || amount === undefined) return;
+        if (status !== "Finalized") {
+          totals.notFinalized += amount;
+        }
+        if (status === "Ready to prove") {
+          totals.readyToProve += amount;
+        }
+        if (status === "Proof submitted" || status === "Waiting for finalization") {
+          totals.waitingFinal += amount;
+        }
+      }
+
+      function updateBackendTotalsUI(netKey, totals) {
+        if (totals.hasError) {
+          setField(netKey, "native", "Unknown");
+          if (netKey !== "arbitrum") {
+            setField(netKey, "proof", "Unknown");
+          }
+          setField(netKey, "waiting", "Unknown");
+          return;
+        }
+
+        setField(netKey, "native", formatAmountGrouped(totals.notFinalized));
+        if (netKey !== "arbitrum") {
+          setField(netKey, "proof", formatAmountGrouped(totals.readyToProve));
+        }
+        setField(netKey, "waiting", formatAmountGrouped(totals.waitingFinal));
+      }
+
+      function formatCountdown(seconds) {
+        if (!Number.isFinite(seconds)) return "-";
+        if (seconds <= 0) return "Updating soon";
+        const days = Math.floor(seconds / 86400);
+        const hours = Math.floor((seconds % 86400) / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        if (days > 0) return `${days}d ${hours}h`;
+        if (hours > 0) return `${hours}h ${minutes}m`;
+        return `${minutes}m ${Math.floor(seconds % 60)}s`;
+      }
+
+      function updateCooldown(netKey, cooldown) {
+        const note = `Next update in ${formatCountdown(cooldown.nextEpoch - cooldown.timestamp)}`;
+        setField(
+          netKey,
+          "cooldown",
+          `${formatAmountGrouped(cooldown.available)} / ${formatAmountGrouped(cooldown.limit)}`
+        );
+        setField(netKey, "cooldown-note", note);
+      }
+
+      function updateTimestamp(netKey) {
+        const stamp = new Date();
+        setField(netKey, "updated", `Updated ${stamp.toLocaleTimeString()}`);
+      }
+
+      async function loadNetwork(netKey, options = {}) {
+        const { refreshStatus = false } = options;
+        if (refreshStatus) {
+          clearBackendCache(netKey);
+        }
+        const net = NETWORKS[netKey];
+        setField(netKey, "vault", "Loading...");
+        setField(netKey, "cooldown", "Loading...");
+        setField(netKey, "cooldown-note", "");
+        setField(netKey, "native", "Loading...");
+        if (netKey !== "arbitrum") setField(netKey, "proof", "Loading...");
+        setField(netKey, "waiting", "Loading...");
+
+        try {
+          const [messages, vaultBalance, debtCeiling] = await Promise.all([
+            fetchMessages(net),
+            fetchVaultBalance(net.l1Vault),
+            fetchDebtCeiling(net.l1Vault),
+          ]);
+
+          const totals = initBackendTotals();
+          updateBackendTotalsUI(netKey, totals);
+          renderTable(netKey, messages, net, totals);
+          updateSummary(netKey, vaultBalance, debtCeiling);
+
+          try {
+            const cooldown = await fetchCooldown(net);
+            updateCooldown(netKey, cooldown);
+          } catch (cooldownError) {
+            console.error(cooldownError);
+            setField(netKey, "cooldown", "Unavailable");
+            setField(netKey, "cooldown-note", "");
+          }
+
+          updateTimestamp(netKey);
+        } catch (err) {
+          console.error(err);
+          const tbody = document.querySelector(`[data-net="${netKey}"][data-field="table"]`);
+          tbody.innerHTML = `<tr><td colspan="6">Failed to load data.</td></tr>`;
+          setField(netKey, "vault", "Unavailable");
+          setField(netKey, "cooldown", "Unavailable");
+          setField(netKey, "cooldown-note", "");
+          setField(netKey, "native", "Unavailable");
+          if (netKey !== "arbitrum") setField(netKey, "proof", "Unavailable");
+          setField(netKey, "waiting", "Unavailable");
+        }
+      }
+
+      const initialRpcSettings = loadRpcSettings();
+      syncRpcForm(initialRpcSettings);
+      applyRpcSettings(initialRpcSettings, { refresh: false });
+
+      const rpcApply = document.getElementById("rpc-apply");
+      if (rpcApply) {
+        rpcApply.addEventListener("click", () => {
+          const settings = readRpcForm();
+          saveRpcSettings(settings);
+          applyRpcSettings(settings);
+        });
+      }
+
+      const rpcReset = document.getElementById("rpc-reset");
+      if (rpcReset) {
+        rpcReset.addEventListener("click", () => {
+          const defaults = getDefaultRpcSettings();
+          localStorage.removeItem(RPC_STORAGE_KEY);
+          syncRpcForm(defaults);
+          applyRpcSettings(defaults);
+        });
+      }
+
+      document.addEventListener("click", (event) => {
+        const target = event.target.closest("[data-action='refresh']");
+        if (!target) return;
+        const netKey = target.getAttribute("data-net");
+        loadNetwork(netKey, { refreshStatus: true });
+      });
+
+      document.addEventListener("mouseover", (event) => {
+        const target = event.target.closest("[data-address]");
+        if (!target) return;
+        const address = target.getAttribute("data-address");
+        if (!address) return;
+        document.querySelectorAll(`[data-address="${address}"]`).forEach((el) => {
+          el.classList.add("addr-highlight");
+        });
+      });
+
+      document.addEventListener("mouseout", (event) => {
+        const target = event.target.closest("[data-address]");
+        if (!target) return;
+        const address = target.getAttribute("data-address");
+        if (!address) return;
+        document.querySelectorAll(`[data-address="${address}"]`).forEach((el) => {
+          el.classList.remove("addr-highlight");
+        });
+      });
+
+      Object.keys(NETWORKS).forEach((netKey) => {
+        loadNetwork(netKey);
+      });
+    </script>
+  </body>
+</html>
