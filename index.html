@@ -426,6 +426,10 @@
                 Ankr key
                 <input id="rpc-ankr-key" type="text" placeholder="Optional" autocomplete="off" />
               </label>
+              <label>
+                Alchemy key
+                <input id="rpc-alchemy-key" type="text" placeholder="Optional" autocomplete="off" />
+              </label>
             </div>
             <div class="rpc-row">
               <label>
@@ -452,6 +456,7 @@
                   <option value="default">Default</option>
                   <option value="drpc">DRPC</option>
                   <option value="ankr">Ankr</option>
+                  <option value="alchemy">Alchemy</option>
                   <option value="custom">Custom</option>
                 </select>
               </label>
@@ -812,12 +817,19 @@
       const RPC_TEMPLATES = {
         drpc: "https://lb.drpc.live/{{chain}}/{{key}}",
         ankr: "https://rpc.ankr.com/{{chain}}/{{key}}",
+        alchemy: "https://{{chain}}.g.alchemy.com/v2/{{key}}",
+      };
+      const RPC_LABELS = {
+        ethereum: "Ethereum",
+        arbitrum: "Arbitrum",
+        optimism: "Optimism",
+        fraxtal: "Fraxtal",
       };
       const RPC_CHAIN_SLUGS = {
-        ethereum: { drpc: "eth", ankr: "eth" },
-        arbitrum: { drpc: "arbitrum", ankr: "arbitrum" },
-        optimism: { drpc: "optimism", ankr: "optimism" },
-        fraxtal: { drpc: "fraxtal", ankr: null },
+        ethereum: { drpc: "eth", ankr: "eth", alchemy: "eth-mainnet" },
+        arbitrum: { drpc: "arbitrum", ankr: "arbitrum", alchemy: "arb-mainnet" },
+        optimism: { drpc: "optimism", ankr: "optimism", alchemy: "opt-mainnet" },
+        fraxtal: { drpc: "fraxtal", ankr: null, alchemy: null },
       };
 
       const DECIMALS = 18n;
@@ -826,6 +838,27 @@
       const outboxCache = new Map();
 
       const $ = (selector) => document.querySelector(selector);
+
+      function getRpcLabel(rpc) {
+        if (!rpc) return null;
+        const entries = Object.entries(rpcEndpoints);
+        for (const [key, value] of entries) {
+          if (value === rpc) return RPC_LABELS[key] || key;
+        }
+        return null;
+      }
+
+      function wrapRpcError(error, rpc, fallbackMessage) {
+        const err = error instanceof Error ? error : new Error(fallbackMessage || "RPC error");
+        if (!err.message && fallbackMessage) {
+          err.message = fallbackMessage;
+        }
+        const label = getRpcLabel(rpc);
+        if (label && !err.rpcLabel) {
+          err.rpcLabel = label;
+        }
+        return err;
+      }
 
       function setField(net, field, value) {
         const el = document.querySelector(`[data-net="${net}"][data-field="${field}"]`);
@@ -1161,6 +1194,7 @@
           provider: "default",
           drpcKey: "",
           ankrKey: "",
+          alchemyKey: "",
           custom: {
             ethereum: "",
             arbitrum: "",
@@ -1206,6 +1240,7 @@
         const provider = settings.provider || "default";
         const drpcKey = (settings.drpcKey || "").trim();
         const ankrKey = (settings.ankrKey || "").trim();
+        const alchemyKey = (settings.alchemyKey || "").trim();
 
         if (provider === "drpc") {
           Object.keys(endpoints).forEach((chainKey) => {
@@ -1217,6 +1252,13 @@
         if (provider === "ankr") {
           Object.keys(endpoints).forEach((chainKey) => {
             const url = buildProviderUrl("ankr", chainKey, ankrKey);
+            if (url) endpoints[chainKey] = url;
+          });
+        }
+
+        if (provider === "alchemy") {
+          Object.keys(endpoints).forEach((chainKey) => {
+            const url = buildProviderUrl("alchemy", chainKey, alchemyKey);
             if (url) endpoints[chainKey] = url;
           });
         }
@@ -1246,6 +1288,8 @@
             status = drpcKey ? "Using DRPC" : "DRPC selected (missing key, using defaults)";
           } else if (provider === "ankr") {
             status = ankrKey ? "Using Ankr" : "Ankr selected (missing key, using defaults)";
+          } else if (provider === "alchemy") {
+            status = alchemyKey ? "Using Alchemy" : "Alchemy selected (missing key, using defaults)";
           } else if (provider === "custom") {
             status = "Using custom RPCs";
           }
@@ -1270,6 +1314,7 @@
         const providerEl = document.getElementById("rpc-provider");
         const drpcEl = document.getElementById("rpc-drpc-key");
         const ankrEl = document.getElementById("rpc-ankr-key");
+        const alchemyEl = document.getElementById("rpc-alchemy-key");
         const customEth = document.getElementById("rpc-custom-ethereum");
         const customArb = document.getElementById("rpc-custom-arbitrum");
         const customOp = document.getElementById("rpc-custom-optimism");
@@ -1278,6 +1323,7 @@
         if (providerEl) providerEl.value = settings.provider || "default";
         if (drpcEl) drpcEl.value = settings.drpcKey || "";
         if (ankrEl) ankrEl.value = settings.ankrKey || "";
+        if (alchemyEl) alchemyEl.value = settings.alchemyKey || "";
         if (customEth) customEth.value = settings.custom?.ethereum || "";
         if (customArb) customArb.value = settings.custom?.arbitrum || "";
         if (customOp) customOp.value = settings.custom?.optimism || "";
@@ -1288,6 +1334,7 @@
         const providerEl = document.getElementById("rpc-provider");
         const drpcEl = document.getElementById("rpc-drpc-key");
         const ankrEl = document.getElementById("rpc-ankr-key");
+        const alchemyEl = document.getElementById("rpc-alchemy-key");
         const customEth = document.getElementById("rpc-custom-ethereum");
         const customArb = document.getElementById("rpc-custom-arbitrum");
         const customOp = document.getElementById("rpc-custom-optimism");
@@ -1297,6 +1344,7 @@
           provider: providerEl ? providerEl.value : "default",
           drpcKey: drpcEl ? drpcEl.value.trim() : "",
           ankrKey: ankrEl ? ankrEl.value.trim() : "",
+          alchemyKey: alchemyEl ? alchemyEl.value.trim() : "",
           custom: {
             ethereum: customEth ? customEth.value.trim() : "",
             arbitrum: customArb ? customArb.value.trim() : "",
@@ -1307,76 +1355,88 @@
       }
 
       async function rpcCall(rpc, method, params) {
-        const res = await fetch(rpc, {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            jsonrpc: "2.0",
-            id: 1,
-            method,
-            params,
-          }),
-        });
-        const json = await res.json();
-        if (json.error) throw new Error(json.error.message || "RPC error");
-        return json.result;
+        try {
+          const res = await fetch(rpc, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              jsonrpc: "2.0",
+              id: 1,
+              method,
+              params,
+            }),
+          });
+          const json = await res.json();
+          if (json.error) throw new Error(json.error.message || "RPC error");
+          return json.result;
+        } catch (error) {
+          throw wrapRpcError(error, rpc, "RPC error");
+        }
       }
 
       async function rpcBatchCall(rpc, calls) {
-        if (!calls.length) return [];
-        const payload = calls.map((call, index) => ({
-          jsonrpc: "2.0",
-          id: index + 1,
-          method: call.method,
-          params: call.params,
-        }));
-        const res = await fetch(rpc, {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-        const json = await res.json();
-        if (!Array.isArray(json)) {
-          throw new Error("Batch RPC not supported");
+        try {
+          if (!calls.length) return [];
+          const payload = calls.map((call, index) => ({
+            jsonrpc: "2.0",
+            id: index + 1,
+            method: call.method,
+            params: call.params,
+          }));
+          const res = await fetch(rpc, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          const json = await res.json();
+          if (!Array.isArray(json)) {
+            throw new Error("Batch RPC not supported");
+          }
+          const byId = new Map();
+          json.forEach((item) => {
+            byId.set(item.id, item);
+          });
+          return payload.map((req) => {
+            const item = byId.get(req.id);
+            if (!item) throw new Error("Missing batch response");
+            if (item.error) throw new Error(item.error.message || "Batch RPC error");
+            return item.result;
+          });
+        } catch (error) {
+          throw wrapRpcError(error, rpc, "Batch RPC error");
         }
-        const byId = new Map();
-        json.forEach((item) => {
-          byId.set(item.id, item);
-        });
-        return payload.map((req) => {
-          const item = byId.get(req.id);
-          if (!item) throw new Error("Missing batch response");
-          if (item.error) throw new Error(item.error.message || "Batch RPC error");
-          return item.result;
-        });
       }
 
       async function rpcBatchCallLoose(rpc, calls) {
-        if (!calls.length) return [];
-        const payload = calls.map((call, index) => ({
-          jsonrpc: "2.0",
-          id: index + 1,
-          method: call.method,
-          params: call.params,
-        }));
-        const res = await fetch(rpc, {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-        const json = await res.json();
-        if (!Array.isArray(json)) {
-          throw new Error("Batch RPC not supported");
+        try {
+          if (!calls.length) return [];
+          const payload = calls.map((call, index) => ({
+            jsonrpc: "2.0",
+            id: index + 1,
+            method: call.method,
+            params: call.params,
+          }));
+          const res = await fetch(rpc, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          const json = await res.json();
+          if (!Array.isArray(json)) {
+            throw new Error("Batch RPC not supported");
+          }
+          const byId = new Map();
+          json.forEach((item) => {
+            byId.set(item.id, item);
+          });
+          return payload.map((req) => {
+            const item = byId.get(req.id);
+            if (!item || item.error) return null;
+            return item.result;
+          });
+        } catch (error) {
+          throw wrapRpcError(error, rpc, "Batch RPC error");
         }
-        const byId = new Map();
-        json.forEach((item) => {
-          byId.set(item.id, item);
-        });
-        return payload.map((req) => {
-          const item = byId.get(req.id);
-          if (!item || item.error) return null;
-          return item.result;
-        });
       }
 
       async function ethCall(rpc, to, data) {
@@ -1560,7 +1620,32 @@
       async function fetchMessages(net) {
         const url = `${LZ_API}/messages/oapp/${net.eid}/${net.l2Messenger}?limit=100`;
         const res = await fetch(url);
-        if (!res.ok) throw new Error(`LayerZero API error: ${res.status}`);
+        if (!res.ok) {
+          let detail = "";
+          try {
+            const contentType = res.headers.get("content-type") || "";
+            if (contentType.includes("application/json")) {
+              const body = await res.json();
+              if (body && typeof body === "object") {
+                detail =
+                  body.message ||
+                  body.error ||
+                  body.detail ||
+                  JSON.stringify(body);
+              }
+            } else {
+              detail = (await res.text()).trim();
+            }
+          } catch (error) {
+            detail = "";
+          }
+          if (detail) {
+            detail = detail.replace(/\s+/g, " ").slice(0, 200);
+          }
+          const statusText = res.statusText ? ` ${res.statusText}` : "";
+          const suffix = detail ? `: ${detail}` : "";
+          throw new Error(`LayerZero API error ${res.status}${statusText}${suffix}`);
+        }
         const json = await res.json();
         return json.data || [];
       }
@@ -1612,7 +1697,9 @@
         if (direct) return direct;
         const indexed = pick(indexedResult);
         if (indexed) return indexed;
-        throw new Error("Proof submitter lookup failed");
+        const err = new Error("Proof submitter lookup failed");
+        err.rpcLabel = "Ethereum";
+        throw err;
       }
 
       async function fetchOutboxAddress(net) {
@@ -1622,7 +1709,9 @@
           { to: net.rollupProxy, data: SELECTOR_OUTBOX },
         ]);
         if (!outboxAddrData || outboxAddrData === "0x") {
-          throw new Error("Outbox lookup failed");
+          const err = new Error("Outbox lookup failed");
+          err.rpcLabel = "Ethereum";
+          throw err;
         }
         const outboxAddr = "0x" + outboxAddrData.slice(-40);
         outboxCache.set(key, outboxAddr);
@@ -1897,7 +1986,11 @@
           let counted = false;
           if (!txHash) {
             backendCell.innerHTML = "";
-            backendCell.appendChild(statusTag("Failed to load", backendStatusClass("Initiated")));
+            const label = net?.name || "";
+            const suffix = label ? ` [${label}]` : "";
+            backendCell.appendChild(
+              statusTag(`Failed to load${suffix}`, backendStatusClass("Initiated"))
+            );
             totals.hasError = true;
             updateBackendTotalsUI(netKey, totals);
             if (!dateFilled) {
@@ -1937,7 +2030,9 @@
             .catch((error) => {
               console.error(error);
               backendCell.innerHTML = "";
-              const tag = statusTag("Failed to load", backendStatusClass("Initiated"));
+              const label = error?.rpcLabel || net?.name || "";
+              const suffix = label ? ` [${label}]` : "";
+              const tag = statusTag(`Failed to load${suffix}`, backendStatusClass("Initiated"));
               if (net.blockscout) {
                 const link = document.createElement("a");
                 link.href = `${net.blockscout}/tx/${txHash}`;
@@ -2031,6 +2126,25 @@
         setField(netKey, "updated", `Updated ${stamp.toLocaleTimeString()}`);
       }
 
+      function escapeHtml(value) {
+        return String(value).replace(/[&<>"']/g, (char) => {
+          switch (char) {
+            case "&":
+              return "&amp;";
+            case "<":
+              return "&lt;";
+            case ">":
+              return "&gt;";
+            case '"':
+              return "&quot;";
+            case "'":
+              return "&#39;";
+            default:
+              return char;
+          }
+        });
+      }
+
       async function loadNetwork(netKey, options = {}) {
         const { refreshStatus = false } = options;
         if (refreshStatus) {
@@ -2045,16 +2159,38 @@
         setField(netKey, "waiting", "Loading...");
 
         try {
-          const [messages, vaultBalance, debtCeiling] = await Promise.all([
+          const tbody = document.querySelector(`[data-net="${netKey}"][data-field="table"]`);
+          const [messagesResult, vaultResult, debtResult] = await Promise.allSettled([
             fetchMessages(net),
             fetchVaultBalance(net.l1Vault),
             fetchDebtCeiling(net.l1Vault),
           ]);
 
+          let messages = null;
+          if (messagesResult.status === "fulfilled") {
+            messages = messagesResult.value;
+          } else if (tbody) {
+            const errMsg =
+              messagesResult.reason?.message || messagesResult.reason?.toString?.() || "Unknown";
+            tbody.innerHTML = `<tr><td colspan="6">LayerZero error (${escapeHtml(
+              net.name
+            )}): ${escapeHtml(errMsg)}</td></tr>`;
+          }
+
           const totals = initBackendTotals();
-          updateBackendTotalsUI(netKey, totals);
-          renderTable(netKey, messages, net, totals);
-          updateSummary(netKey, vaultBalance, debtCeiling);
+          if (messages) {
+            updateBackendTotalsUI(netKey, totals);
+            renderTable(netKey, messages, net, totals);
+          } else {
+            totals.hasError = true;
+            updateBackendTotalsUI(netKey, totals);
+          }
+
+          if (vaultResult.status === "fulfilled" && debtResult.status === "fulfilled") {
+            updateSummary(netKey, vaultResult.value, debtResult.value);
+          } else {
+            setField(netKey, "vault", "Unavailable");
+          }
 
           try {
             const cooldown = await fetchCooldown(net);
@@ -2069,7 +2205,9 @@
         } catch (err) {
           console.error(err);
           const tbody = document.querySelector(`[data-net="${netKey}"][data-field="table"]`);
-          tbody.innerHTML = `<tr><td colspan="6">Failed to load data.</td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="6">Failed to load data (${escapeHtml(
+            net.name
+          )}).</td></tr>`;
           setField(netKey, "vault", "Unavailable");
           setField(netKey, "cooldown", "Unavailable");
           setField(netKey, "cooldown-note", "");
